@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-label="LLM Atlas: watch an AI learn to write">
+  <defs>
+    <linearGradient id="title" x1="0" x2="1">
+      <stop offset="0" stop-color="#6b4eff"/><stop offset=".65" stop-color="#ff6a55"/><stop offset="1" stop-color="#ffb21e"/>
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="60"/></filter>
+    <clipPath id="card"><rect width="1200" height="380" rx="28"/></clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect width="1200" height="380" fill="#fbf9f4"/>
+    <circle cx="120" cy="40" r="190" fill="#cfc3ff" opacity=".55" filter="url(#blur)"/>
+    <circle cx="1110" cy="110" r="170" fill="#ffd2c9" opacity=".6" filter="url(#blur)"/>
+    <circle cx="640" cy="400" r="160" fill="#ffe6a8" opacity=".55" filter="url(#blur)"/>
+  </g>
+  <g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" text-anchor="middle">
+    <g transform="translate(518 52)">
+      <rect width="34" height="34" rx="10" fill="#6b4eff"/>
+      <circle cx="17" cy="17" r="8.5" fill="none" stroke="#fff" stroke-width="2.6" stroke-dasharray="4 3"/>
+      <circle cx="17" cy="8.5" r="3.2" fill="#ffb21e"/>
+      <text x="108" y="25" font-size="24" font-weight="700" fill="#191530">LLM Atlas</text>
+    </g>
+    <text x="600" y="150" font-size="58" font-weight="800" fill="#191530" letter-spacing="-1.5">Watch an AI <tspan fill="url(#title)">learn to write.</tspan></text>
+    <text x="600" y="196" font-size="21" fill="#4a4660">Train a real tiny transformer in your browser and see every step of how it learns.</text>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="600">
+      <g transform="translate(118 252)">
+        <rect width="104" height="40" rx="12" fill="#fff" stroke="#ebe6dc"/><text x="52" y="26" fill="#191530">text</text>
+        <text x="122" y="26" fill="#8a8699">→</text>
+        <rect x="140" width="104" height="40" rx="12" fill="#fff" stroke="#ebe6dc"/><text x="192" y="26" fill="#191530">tokens</text>
+        <text x="262" y="26" fill="#8a8699">→</text>
+        <rect x="280" width="132" height="40" rx="12" fill="#fff" stroke="#ebe6dc"/><text x="346" y="26" fill="#191530">embeddings</text>
+        <text x="430" y="26" fill="#8a8699">→</text>
+        <rect x="448" width="120" height="40" rx="12" fill="#efebff" stroke="#c9bcff"/><text x="508" y="26" fill="#6b4eff">attention</text>
+        <text x="586" y="26" fill="#8a8699">→</text>
+        <rect x="604" width="88" height="40" rx="12" fill="#fff" stroke="#ebe6dc"/><text x="648" y="26" fill="#191530">MLP</text>
+        <text x="710" y="26" fill="#8a8699">→</text>
+        <rect x="728" width="104" height="40" rx="12" fill="#fff" stroke="#ebe6dc"/><text x="780" y="26" fill="#191530">logits</text>
+        <text x="850" y="26" fill="#8a8699">→</text>
+        <rect x="868" width="96" height="40" rx="12" fill="#ddf6ec" stroke="#9fe0c5"/><text x="916" y="26" fill="#0fae7a">"e" ✓</text>
+      </g>
+    </g>
+    <text x="600" y="338" font-size="15" fill="#8a8699">No servers · no installs · just open the page and press train</text>
+  </g>
+</svg>
