@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Under the Hood · LLM Atlas</title>
+<meta name="description" content="An interactive, chapter-by-chapter visual companion for building a GPT-style language model from scratch. Every number is computed live in your browser.">
+<meta property="og:title" content="LLM Atlas: watch a language model take shape">
+<meta property="og:description" content="Interactive visuals for tokenization, attention, GPT architecture and sampling. Everything runs live in your browser.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#4f46e5">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cg fill='%23fff'%3E%3Crect x='7' y='7' width='5' height='5' rx='1' opacity='.45'/%3E%3Crect x='14' y='7' width='5' height='5' rx='1' opacity='.7'/%3E%3Crect x='21' y='7' width='5' height='5' rx='1'/%3E%3Crect x='7' y='14' width='5' height='5' rx='1' opacity='.7'/%3E%3Crect x='14' y='14' width='5' height='5' rx='1'/%3E%3Crect x='21' y='14' width='5' height='5' rx='1' opacity='.45'/%3E%3Crect x='7' y='21' width='5' height='5' rx='1'/%3E%3Crect x='14' y='21' width='5' height='5' rx='1' opacity='.45'/%3E%3Crect x='21' y='21' width='5' height='5' rx='1' opacity='.7'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbf9f4;--surface:#ffffff;--surface-2:#f4f1ea;--text:#191530;--muted:#6f6b80;--border:#ebe6dc;
+  --accent:#6b4eff;--accent-soft:#efebff;--heat:107,78,255;--emp:#ffb21e;
+  --c1:#6b4eff;--c2:#0fae7a;--c3:#ffb21e;--c4:#ff6a55;--c5:#9a96a8;--c6:#b9a8ff;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+header.hero{padding:64px 0 24px;text-align:center}
+.hero .lede{margin:0 auto}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:750 clamp(40px,7vw,68px)/1 var(--display);letter-spacing:-.035em;margin:16px 0 16px}
+h1 span{color:var(--accent)}
+.lede{font-size:18px;color:var(--muted);max-width:690px;margin:0}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:24px;font:13px var(--mono);color:var(--muted)}
+.flow b{font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--border);padding:5px 10px;border-radius:8px}
+.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-in{display:flex;align-items:center;gap:12px;height:62px}
+.logo{display:flex;align-items:center;gap:9px;font:700 17px var(--display);color:var(--text);text-decoration:none;letter-spacing:-.01em}
+.tabs{margin-left:auto;display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px}
+.tab{font:500 14px var(--sans);color:var(--muted);text-decoration:none;padding:7px 14px;border-radius:999px;white-space:nowrap}
+.tab.on{background:var(--text);color:#fff}
+.tab:not(.on):hover{background:var(--accent-soft);color:var(--accent)}
+@media(max-width:480px){.logo span{display:none}.tab{padding:7px 11px;font-size:13px}}
+.jump{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:26px}
+.jump a{font:500 14px var(--sans);color:var(--text);text-decoration:none;background:var(--surface);border:1px solid var(--border);padding:8px 16px;border-radius:999px}
+.jump a:hover{border-color:var(--accent);color:var(--accent)}
+section.ch{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:34px;margin:28px 0;box-shadow:0 1px 2px rgba(25,21,48,.04),0 10px 34px rgba(25,21,48,.06)}
+@media(max-width:640px){section.ch{padding:20px 16px;border-radius:14px}}
+.ch-num{display:inline-block;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:5px 11px;border-radius:999px}
+h2{font:720 clamp(26px,3.8vw,36px)/1.1 var(--display);letter-spacing:-.025em;margin:8px 0 8px}
+.sub{color:var(--muted);margin:0 0 22px;max-width:740px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px}
+@media(max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface-2);border-radius:12px;padding:16px;min-width:0}
+.label{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.controls{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;margin-bottom:18px}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;color:var(--muted);font:500 13px var(--sans);padding:7px 12px;border-radius:8px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.slider{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.slider output{font:600 13px var(--mono);color:var(--text);min-width:4ch}
+input[type=range]{accent-color:var(--accent);width:130px}
+.check{display:flex;gap:7px;align-items:center;font-size:14px;color:var(--muted);cursor:pointer;user-select:none}
+.check input{accent-color:var(--accent);width:16px;height:16px}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);font:500 13px var(--sans);padding:8px 14px;border-radius:9px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;border-radius:999px}
+.btn.primary:hover{opacity:.9;color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+textarea{width:100%;min-height:92px;resize:vertical;font:14px/1.55 var(--mono);color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px}
+textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.toks{display:flex;flex-wrap:wrap;gap:4px}
+.tok{display:inline-flex;flex-direction:column;align-items:center;padding:3px 6px 2px;border-radius:6px;background:hsl(var(--h) 75% 55% / .17);border:1px solid hsl(var(--h) 65% 50% / .45);font:13px/1.25 var(--mono);white-space:pre}
+.tok i{font-style:normal;font-size:10px;color:var(--muted)}
+.tok.sm{flex-direction:row;padding:2px 5px;font-size:12px}
+.stats{display:flex;gap:26px;flex-wrap:wrap;margin:16px 0}
+.stat b{display:block;font:600 22px/1.15 var(--mono)}
+.stat span{font-size:12px;color:var(--muted)}
+.merges{font:12px/1.8 var(--mono);color:var(--muted);margin-top:10px}
+.merges code{color:var(--text);background:var(--surface);border-radius:4px;padding:1px 5px}
+.win{display:grid;grid-template-columns:22px minmax(0,1fr);gap:5px 8px;align-items:center;padding:10px 0;border-top:1px dashed var(--border)}
+.win .k{font:600 12px var(--mono);color:var(--muted)}
+.pairs{font:13px/1.9 var(--mono)}
+.pairs .arrow{color:var(--accent);padding:0 6px}
+.note{font-size:14px;color:var(--muted);margin:12px 0 0}
+.note strong{color:var(--text)}
+.heat{display:grid;gap:2px;font:12px var(--mono)}
+.heat .c{aspect-ratio:1;display:grid;place-items:center;border-radius:3px;cursor:pointer;font-size:10px;transition:background .2s}
+.heat .c.masked{background:repeating-linear-gradient(45deg,var(--border) 0 2px,transparent 2px 6px)}
+.heat .c.sel{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.heat .rl{text-align:right;padding-right:6px;cursor:pointer;color:var(--muted);align-self:center;white-space:nowrap}
+.heat .rl.on{color:var(--accent);font-weight:700}
+.heat .cl{writing-mode:vertical-rl;transform:rotate(180deg);color:var(--muted);justify-self:center;padding-top:4px;font-size:11px;white-space:nowrap}
+@media(max-width:520px){.heat .c{font-size:0}}
+.axis{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--muted);margin-top:8px}
+.sent{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px}
+.sent span{padding:3px 7px;border-radius:6px;font:14px var(--mono);border:1px solid var(--border)}
+.bars{display:grid;grid-template-columns:auto minmax(0,1fr) 52px;gap:7px 10px;align-items:center;font-size:14px}
+.bars .nm{font:13px var(--mono);white-space:nowrap}
+.bars .nm small{color:var(--muted);font-size:11px;margin-left:4px}
+.bars button.nm{border:0;background:none;color:inherit;cursor:pointer;text-align:left;padding:0}
+.bars button.nm.tgt{color:var(--accent);font-weight:700}
+.bars .v{font:12px var(--mono);text-align:right;color:var(--muted)}
+.bars .off{opacity:.35;text-decoration:line-through}
+.bar{height:18px;background:var(--surface);border-radius:5px;overflow:hidden;position:relative}
+.bar>span{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:5px;transition:width .25s}
+.bar>em{position:absolute;left:0;bottom:0;height:5px;background:var(--emp);transition:width .25s}
+.formula{font:13px/1.7 var(--mono);color:var(--muted);margin-top:14px;word-break:break-word}
+.formula b{color:var(--text)}
+.arch{display:flex;flex-direction:column;gap:6px}
+.layer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:9px 12px;border-radius:10px;background:var(--surface-2);border:1.5px solid transparent;cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+.layer:hover{border-color:var(--border)}
+.layer.on{border-color:var(--accent);background:var(--accent-soft)}
+.layer .nm{font-weight:600;font-size:14px}
+.layer .shp{font:12px var(--mono);color:var(--muted)}
+.layer .pr{font:12px var(--mono);color:var(--muted);text-align:right;grid-row:1/3;grid-column:2;align-self:center}
+.layer.thin{padding:5px 12px;background:none;border:1.5px dashed var(--border)}
+.layer.thin .nm{font-weight:500;color:var(--muted);font-size:13px}
+.block{border:1.5px solid var(--accent);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.block-tag{display:flex;justify-content:space-between;font:600 12px var(--mono);color:var(--accent);padding:2px 4px}
+.big{font:700 clamp(30px,5vw,42px)/1.05 var(--mono);letter-spacing:-.03em}
+.stack{display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px;margin:16px 0 10px}
+.stack span{transition:flex-grow .3s;min-width:2px}
+.legend{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;font-size:13px;align-items:center}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend .v{font:12px var(--mono);color:var(--muted);text-align:right}
+.info{margin-top:14px;padding:12px 14px;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 10px 10px 0;font-size:14px}
+.info b{display:block;margin-bottom:2px}
+.warn{color:var(--c3);font-size:13px}
+.out-sent{font:18px var(--mono);margin:4px 0 14px}
+.out-sent mark{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:5px;font-weight:700}
+.kpis{display:flex;gap:24px;flex-wrap:wrap;margin-top:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.card{border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface-2)}
+.card h3{margin:6px 0 6px;font-size:16px;line-height:1.3}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+.badge{font:600 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+.badge.live{background:color-mix(in srgb,var(--c2) 18%,transparent);color:var(--c2)}
+.badge.plan{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+footer{padding:28px 0 60px;color:var(--muted);font-size:13px}
+.spacer{height:14px}
+.sig{font:650 20px var(--display);color:var(--text);letter-spacing:-.01em}
+.heart{color:#ff6a55;display:inline-block;animation:beat 1.6s ease-in-out infinite}
+@keyframes beat{0%,60%,100%{transform:scale(1)}20%{transform:scale(1.25)}40%{transform:scale(.95)}}
+.sig-link{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font:500 14px var(--sans);color:var(--accent);text-decoration:none;padding:8px 16px;border-radius:999px;background:var(--accent-soft);transition:transform .15s}
+.sig-link:hover{transform:translateY(-1px)}
+.fine{max-width:620px;margin:22px auto 0;padding-top:20px;border-top:1px solid var(--border);line-height:1.7}
+footer{text-align:center;padding:40px 0 70px}
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="wrap nav-in">
+  <a class="logo" href="./"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#6b4eff"/><circle cx="16" cy="16" r="8" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="4 3"/><circle cx="16" cy="8" r="3" fill="#ffb21e"/></svg><span>LLM Atlas</span></a>
+  <div class="tabs"><a class="tab" href="./">Train a model</a><a class="tab on" href="lab.html">Under the hood</a></div>
+</div></nav>
+
+<div class="wrap">
+<header class="hero" id="top">
+  <div class="eyebrow">Under the hood</div>
+  <h1>Take the model apart.</h1>
+  <p class="lede">Each piece of a GPT, on its own, for you to poke at. Every number here is computed live.</p>
+  <div class="jump"><a href="#tokens">Tokens</a><a href="#attention">Attention</a><a href="#gpt">Architecture</a><a href="#sampling">Sampling</a></div>
+</header>
+
+<!-- ============ CHAPTER 2 ============ -->
+<section class="ch" id="tokens">
+  <div class="ch-num">Step 1 · Tokens</div>
+  <h2>From characters to token IDs</h2>
+  <p class="sub">A model never sees letters. Text is split into <em>tokens</em>, and every distinct token gets an integer ID. Edit the text and compare three strategies. In <strong>BPE</strong> mode, drag the slider to learn merges one at a time and watch frequent fragments fuse into bigger tokens.</p>
+
+  <div class="controls">
+    <div class="seg" id="tk-mode">
+      <button data-v="char">Characters</button>
+      <button data-v="word">Words</button>
+      <button data-v="bpe" class="on">BPE (subword)</button>
+    </div>
+    <label class="slider" id="tk-merge-wrap">Merges <input type="range" id="tk-merges" min="0" max="80" value="24"><output id="tk-merges-o">24</output></label>
+  </div>
+
+  <textarea id="tk-text" spellcheck="false">Language models read text as tokens, not words. Tokens become numbers, numbers become vectors, and vectors become predictions. The model predicts the next token, then the next, then the next.</textarea>
+
+  <div class="stats" id="tk-stats"></div>
+  <div class="toks" id="tk-out"></div>
+  <div class="merges" id="tk-merge-list"></div>
+
+  <div class="spacer"></div>
+  <div class="grid2">
+    <div class="panel">
+      <p class="label">Sliding window → training examples</p>
+      <div class="controls" style="margin-bottom:6px">
+        <label class="slider">Context <input type="range" id="tk-ctx" min="2" max="8" value="4"><output id="tk-ctx-o">4</output></label>
+        <label class="slider">Stride <input type="range" id="tk-stride" min="1" max="8" value="4"><output id="tk-stride-o">4</output></label>
+      </div>
+      <div id="tk-wins"></div>
+    </div>
+    <div class="panel">
+      <p class="label">What one window teaches</p>
+      <div class="pairs" id="tk-pairs"></div>
+      <p class="note">The target is just the input <strong>shifted one token to the right</strong>. A single window of length <em>n</em> gives <em>n</em> next-token predictions at once. A stride smaller than the context makes windows overlap, so the same tokens get reused.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHAPTER 3 ============ -->
+<section class="ch" id="attention">
+  <div class="ch-num">Step 2 · Attention</div>
+  <h2>Who is each token looking at?</h2>
+  <p class="sub">Every row is a token asking a question. Every column is a token that might answer. Cells show the attention weights after softmax, and each row sums to 1. Click a row to inspect it, then flip the switches and see what each piece of the mechanism does.</p>
+
+  <div class="controls">
+    <div class="seg" id="at-mode">
+      <button data-v="simple">Simplified (x·xᵀ)</button>
+      <button data-v="qkv" class="on">Trainable Q · K · V</button>
+    </div>
+    <label class="check"><input type="checkbox" id="at-causal" checked> Causal mask</label>
+    <label class="check"><input type="checkbox" id="at-scale" checked> Scale by 1/√d<sub>k</sub></label>
+  </div>
+  <div class="controls">
+    <span class="slider">Heads</span>
+    <div class="seg" id="at-heads"><button data-v="1">1</button><button data-v="2" class="on">2</button><button data-v="4">4</button></div>
+    <span class="slider">Viewing head</span>
+    <div class="seg" id="at-head"></div>
+    <button class="btn" id="at-reseed">↻ New random weights</button>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="heat" id="at-heat"></div>
+      <div class="axis"><span>rows = queries</span><span>columns = keys</span></div>
+    </div>
+    <div class="panel">
+      <p class="label" id="at-qlabel"></p>
+      <div class="sent" id="at-sent"></div>
+      <div class="bars" id="at-bars"></div>
+      <div class="formula" id="at-formula"></div>
+    </div>
+  </div>
+  <p class="note" id="at-explain"></p>
+</section>
+
+<!-- ============ CHAPTER 4 ============ -->
+<section class="ch" id="gpt">
+  <div class="ch-num">Step 3 · Architecture</div>
+  <h2>The whole model, and where its parameters live</h2>
+  <p class="sub">Choose a GPT-2 size or set your own. Click any layer to see its tensor shape and what it does. Then try weight tying and watch roughly 38M parameters disappear.</p>
+
+  <div class="controls">
+    <div class="seg" id="g-preset">
+      <button data-v="small" class="on">GPT-2 Small</button><button data-v="medium">Medium</button><button data-v="large">Large</button><button data-v="xl">XL</button>
+    </div>
+  </div>
+  <div class="controls">
+    <label class="slider">emb_dim <input type="range" id="g-E" min="64" max="2048" step="16"><output id="g-E-o"></output></label>
+    <label class="slider">n_layers <input type="range" id="g-L" min="1" max="48"><output id="g-L-o"></output></label>
+    <label class="slider">n_heads <input type="range" id="g-H" min="1" max="32"><output id="g-H-o"></output></label>
+    <label class="slider">context <input type="range" id="g-C" min="128" max="4096" step="128"><output id="g-C-o"></output></label>
+  </div>
+  <div class="controls">
+    <label class="check"><input type="checkbox" id="g-tie"> Weight tying (share embedding &amp; output head)</label>
+    <label class="check"><input type="checkbox" id="g-qkv"> QKV bias</label>
+  </div>
+
+  <div class="grid2">
+    <div class="arch" id="g-arch"></div>
+    <div>
+      <div class="panel">
+        <p class="label">Total parameters</p>
+        <div class="big" id="g-total"></div>
+        <div class="kpis" id="g-kpis"></div>
+        <div class="stack" id="g-stack"></div>
+        <div class="legend" id="g-legend"></div>
+      </div>
+      <div class="info" id="g-info"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHAPTER 5 ============ -->
+<section class="ch" id="sampling">
+  <div class="ch-num">Step 4 · Sampling</div>
+  <h2>Turning logits into the next word</h2>
+  <p class="sub">The model outputs one raw score (a logit) per vocabulary entry. <strong>Temperature</strong> sharpens or flattens the distribution, and <strong>top-k</strong> cuts off the long tail. Sample many times to see that the observed frequencies (orange) match the probabilities (purple).</p>
+
+  <div class="controls">
+    <label class="slider">Temperature <input type="range" id="s-T" min="0" max="2.5" step="0.05" value="1"><output id="s-T-o">1.00</output></label>
+    <label class="slider">Top-k <input type="range" id="s-k" min="1" max="10" value="10"><output id="s-k-o">off</output></label>
+    <button class="btn primary" id="s-one">Sample next token</button>
+    <button class="btn" id="s-many">Sample 500×</button>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <p class="label">Prompt → next-token distribution</p>
+      <div class="out-sent" id="s-sent"></div>
+      <div class="bars" id="s-bars"></div>
+      <p class="note" id="s-legend"></p>
+    </div>
+    <div class="panel">
+      <p class="label">Training signal: cross-entropy</p>
+      <p class="note" style="margin-top:0">During pretraining, the actual next word in the text is the target. Click any word on the left to make it the target.</p>
+      <div class="kpis" id="s-loss"></div>
+      <p class="note" id="s-loss-note"></p>
+    </div>
+  </div>
+</section>
+
+
+<footer>
+  <div class="sig">Made with <span class="heart" aria-label="love">♥</span> by Purvansh</div>
+  <a class="sig-link" href="https://www.linkedin.com/in/purvanshsingh/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.75h4v11H3v-11zm6.5 0h3.8v1.5h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1v5.45h-4v-4.83c0-1.15-.02-2.63-1.6-2.63-1.6 0-1.85 1.25-1.85 2.55v4.91h-4v-11z"/></svg>Connect with me on LinkedIn</a>
+  <div class="fine">An independent educational project inspired by Sebastian Raschka’s <em>Build a Large Language Model (From Scratch)</em>.<br>Not affiliated with or endorsed by the author or publisher. Official book code: <a href="https://github.com/rasbt/LLMs-from-scratch" target="_blank" rel="noopener">rasbt/LLMs-from-scratch</a>.</div>
+</footer>
+</div>
+
+<script>
+/* ---------------- utilities ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => n.toLocaleString('en-US');
+const short = n => n >= 1e9 ? (n/1e9).toFixed(2)+'B' : n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n);
+const hue = id => (id * 137.508) % 360;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function randnFactory(seed){const r=mulberry32(seed);return()=>{let u=0;while(!u)u=r();const v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}}
+const matrix = (rows, cols, f) => Array.from({length:rows}, (_, i) => Array.from({length:cols}, (_, j) => f(i, j)));
+const matmul = (A, B) => A.map(r => B[0].map((_, j) => r.reduce((s, v, k) => s + v * B[k][j], 0)));
+const transpose = A => A[0].map((_, j) => A.map(r => r[j]));
+function softmax(row){const f=row.filter(Number.isFinite);const m=Math.max(...f);const e=row.map(v=>Number.isFinite(v)?Math.exp(v-m):0);const s=e.reduce((a,b)=>a+b,0);return e.map(v=>v/s)}
+function seg(id, onPick){ $(id).addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; $$('button', $(id)).forEach(x => x.classList.toggle('on', x === b)); onPick(b.dataset.v); }); }
+function setSeg(id, v){ $$('button', $(id)).forEach(x => x.classList.toggle('on', x.dataset.v === String(v))); }
+
+
+/* ================= CHAPTER 2: tokenizer ================= */
+const tk = {mode:'bpe', merges:24, ctx:4, stride:4};
+
+function trainBPE(text, numMerges){
+  const words = text.match(/ ?[A-Za-z]+| ?\d+| ?[^\sA-Za-z\d]+|\s/g) || [];
+  const freq = new Map(); words.forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
+  const splits = new Map([...freq.keys()].map(w => [w, [...w].map(c => c === ' ' ? 'Ġ' : c === '\n' ? '↵' : c)]));
+  const merges = [];
+  for (let m = 0; m < numMerges; m++){
+    const pc = new Map();
+    for (const [w, f] of freq){ const s = splits.get(w); for (let j = 0; j < s.length - 1; j++){ const k = s[j] + '\u0000' + s[j+1]; pc.set(k, (pc.get(k) || 0) + f); } }
+    let best = null, bc = 1;
+    for (const [k, c] of pc) if (c > bc){ best = k; bc = c; }
+    if (!best) break;
+    const [a, b] = best.split('\u0000'); merges.push([a, b, bc]);
+    for (const [w, s] of splits){ const n = []; for (let j = 0; j < s.length; j++){ if (j < s.length - 1 && s[j] === a && s[j+1] === b){ n.push(a + b); j++; } else n.push(s[j]); } splits.set(w, n); }
+  }
+  return {tokens: words.flatMap(w => splits.get(w)), merges};
+}
+function tokenize(text){
+  if (tk.mode === 'char') return {tokens:[...text].map(c => c === ' ' ? '·' : c === '\n' ? '↵' : c)};
+  if (tk.mode === 'word') return {tokens:text.split(/([,.:;?_!"()']|--|\s)/).map(s => s.trim()).filter(Boolean)};
+  return trainBPE(text, tk.merges);
+}
+const show = t => t.replace(/Ġ/g, '·');
+const chip = (t, id, small) => `<span class="tok${small?' sm':''}" style="--h:${hue(id)}"><b>${esc(show(t))}</b>${small?'':`<i>${id}</i>`}</span>`;
+
+function renderTokens(){
+  const text = $('#tk-text').value;
+  const {tokens, merges} = tokenize(text);
+  const vocab = [...new Set(tokens)].sort();
+  const idOf = new Map(vocab.map((t, i) => [t, i]));
+  const ids = tokens.map(t => idOf.get(t));
+  $('#tk-merge-wrap').style.display = tk.mode === 'bpe' ? '' : 'none';
+  $('#tk-stats').innerHTML = [
+    [fmt(text.length), 'characters'], [fmt(tokens.length), 'tokens'], [fmt(vocab.length), 'vocabulary size'],
+    [tokens.length ? (text.length / tokens.length).toFixed(2) : '–', 'chars / token']
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+  const cap = 400;
+  $('#tk-out').innerHTML = tokens.slice(0, cap).map((t, i) => chip(t, ids[i])).join('') + (tokens.length > cap ? `<span class="note">… +${tokens.length - cap} more</span>` : '');
+  if (tk.mode === 'bpe'){
+    const last = merges.slice(-8);
+    $('#tk-merge-list').innerHTML = merges.length
+      ? `Learned <b>${merges.length}</b> merges${merges.length < tk.merges ? ' (no pair appears twice any more)' : ''}. Latest: ` +
+        last.map(([a, b, c], i) => `<code>${esc(show(a))}+${esc(show(b))}→${esc(show(a+b))}</code> ×${c}`).join(' &nbsp;')
+      : 'With 0 merges, BPE is just character-level. Each merge glues together the most frequent adjacent pair. GPT-2 learned 50,000 merges like this.';
+  } else $('#tk-merge-list').innerHTML = tk.mode === 'word'
+    ? 'Word-level splitting is simple, but any word not seen in training has no ID. BPE avoids that by falling back to smaller pieces.'
+    : 'Character-level splitting needs a tiny vocabulary, but sequences get long and each token carries very little meaning.';
+
+  const {ctx, stride} = tk, n = ids.length;
+  const total = n > ctx ? Math.floor((n - ctx - 1) / stride) + 1 : 0;
+  let h = '';
+  for (let i = 0, r = 0; i + ctx < n && r < 4; i += stride, r++){
+    h += `<div class="win"><span class="k">x</span><div class="toks">${tokens.slice(i, i+ctx).map((t, j) => chip(t, ids[i+j], true)).join('')}</div>
+          <span class="k">y</span><div class="toks">${tokens.slice(i+1, i+ctx+1).map((t, j) => chip(t, ids[i+1+j], true)).join('')}</div></div>`;
+  }
+  h += `<p class="note">${total ? `Showing ${Math.min(4, total)} of <strong>${fmt(total)}</strong> windows.` : 'Text is too short for this context length.'}</p>`;
+  $('#tk-wins').innerHTML = h;
+  let p = '';
+  if (n > ctx) for (let j = 1; j <= ctx; j++)
+    p += `<div>${tokens.slice(0, j).map((t, q) => chip(t, ids[q], true)).join(' ')}<span class="arrow">→</span>${chip(tokens[j], ids[j], true)}</div>`;
+  $('#tk-pairs').innerHTML = p || '<span class="note">Add more text.</span>';
+}
+seg('#tk-mode', v => { tk.mode = v; renderTokens(); });
+$('#tk-text').addEventListener('input', renderTokens);
+[['merges','tk-merges'],['ctx','tk-ctx'],['stride','tk-stride']].forEach(([k, id]) =>
+  $('#'+id).addEventListener('input', e => { tk[k] = +e.target.value; $('#'+id+'-o').textContent = e.target.value; renderTokens(); }));
+
+/* ================= CHAPTER 3: attention ================= */
+const WORDS = ['The','robot','picked','up','the','ball','because','it','was','light'];
+const D = 8;
+const att = {mode:'qkv', causal:true, scale:true, heads:2, head:0, seed:7, q:7};
+const ATT_X = (() => {
+  const rn = randnFactory(2024); const X = matrix(WORDS.length, D, () => rn());
+  const mix = (i, j, a) => { X[i] = X[i].map((v, k) => a * X[j][k] + (1 - a) * v); };
+  mix(4, 0, .85); mix(7, 5, .7); mix(9, 5, .35); mix(8, 2, .25);   // give the toy embeddings some similarity structure
+  return X;
+})();
+
+function attnCompute(){
+  const X = ATT_X; let S, dk;
+  if (att.mode === 'simple'){ S = matmul(X, transpose(X)); dk = D; }
+  else {
+    const rn = randnFactory(att.seed);
+    const Wq = matrix(D, D, () => rn() / Math.sqrt(D)), Wk = matrix(D, D, () => rn() / Math.sqrt(D));
+    const dh = D / att.heads, a = att.head * dh, b = a + dh;
+    const Q = matmul(X, Wq).map(r => r.slice(a, b)), K = matmul(X, Wk).map(r => r.slice(a, b));
+    S = matmul(Q, transpose(K)); dk = dh;
+  }
+  if (att.scale) S = S.map(r => r.map(v => v / Math.sqrt(dk)));
+  if (att.causal) S = S.map((r, i) => r.map((v, j) => j > i ? -Infinity : v));
+  return {S, W: S.map(softmax), dk};
+}
+function renderAttention(){
+  const {S, W, dk} = attnCompute(), n = WORDS.length, q = att.q;
+  $('#at-head').innerHTML = Array.from({length: att.mode === 'simple' ? 1 : att.heads}, (_, i) => `<button data-v="${i}" class="${i === att.head ? 'on' : ''}">${i+1}</button>`).join('');
+  $('#at-reseed').disabled = att.mode === 'simple';
+  $('#at-heads').style.opacity = att.mode === 'simple' ? .4 : 1;
+  const heat = $('#at-heat');
+  heat.style.gridTemplateColumns = `minmax(58px,auto) repeat(${n}, minmax(0,1fr))`;
+  let h = '<div></div>' + WORDS.map(w => `<div class="cl">${w}</div>`).join('');
+  for (let i = 0; i < n; i++){
+    h += `<div class="rl${i === q ? ' on' : ''}" data-q="${i}">${WORDS[i]}</div>`;
+    for (let j = 0; j < n; j++){
+      const w = W[i][j], sel = i === q ? ' sel' : '';
+      if (!Number.isFinite(S[i][j])) { h += `<div class="c masked${sel}" data-q="${i}" title="${WORDS[i]} cannot see the future token “${WORDS[j]}”"></div>`; continue; }
+      const txt = w >= .995 ? '1' : w >= .005 ? w.toFixed(2).slice(1) : '';
+      h += `<div class="c${sel}" data-q="${i}" title="${WORDS[i]} → ${WORDS[j]}: ${w.toFixed(3)}" style="background:rgba(var(--heat),${(.05 + .95 * w).toFixed(3)});color:${w > .45 ? '#fff' : 'var(--text)'}">${txt}</div>`;
+    }
+  }
+  heat.innerHTML = h;
+  $('#at-qlabel').textContent = `Query “${WORDS[q]}” attends to…`;
+  $('#at-sent').innerHTML = WORDS.map((w, j) => Number.isFinite(S[q][j])
+    ? `<span style="background:rgba(var(--heat),${W[q][j].toFixed(3)});color:${W[q][j] > .45 ? '#fff' : 'var(--text)'}">${w}</span>`
+    : `<span style="opacity:.35;border-style:dashed">${w}</span>`).join('');
+  const order = W[q].map((w, j) => [w, j]).filter(([, j]) => Number.isFinite(S[q][j])).sort((a, b) => b[0] - a[0]);
+  $('#at-bars').innerHTML = order.slice(0, 6).map(([w, j]) =>
+    `<span class="nm">${WORDS[j]}</span><div class="bar"><span style="width:${(w*100).toFixed(1)}%"></span></div><span class="v">${(w*100).toFixed(1)}%</span>`).join('');
+  const top = order.slice(0, 3).map(([w, j]) => `${w.toFixed(2)}·v(<b>${WORDS[j]}</b>)`).join(' + ');
+  $('#at-formula').innerHTML = `context(<b>${WORDS[q]}</b>) = ${top}${order.length > 3 ? ' + …' : ''}<br>raw scores: [${S[q].map(v => Number.isFinite(v) ? v.toFixed(1) : '−∞').join(', ')}]`;
+  const parts = [];
+  parts.push(att.mode === 'simple'
+    ? '<strong>Simplified attention:</strong> no learned weights yet. The score between two tokens is the dot product of their embeddings, so similar vectors attend to each other. The diagonal is strong because every vector is most similar to itself. These toy embeddings make “it” resemble “ball”.'
+    : `<strong>Trainable attention:</strong> each embedding is projected into a query, a key and a value. Score = query·key. These weights are random, so the pattern is arbitrary until training shapes it. Click “New random weights” to see that.${att.heads > 1 ? ` With ${att.heads} heads, each head works in its own ${D/att.heads}-dimensional subspace and learns its own pattern, and the head outputs are concatenated.` : ''}`);
+  parts.push(att.causal ? 'The <strong>causal mask</strong> hides future tokens (hatched cells) by setting their scores to −∞ before softmax. That is what lets a GPT train on next-token prediction.' : 'Without the causal mask, a token can peek at later words. That works for an encoder, but it would let a GPT cheat during training.');
+  parts.push(att.scale ? `Scores are divided by √d<sub>k</sub> = √${dk} ≈ ${Math.sqrt(dk).toFixed(2)}. Turn this off and the rows turn spiky, because softmax saturates and gradients vanish.` : 'Scaling is off, so large dot products push softmax towards one-hot rows.');
+  $('#at-explain').innerHTML = parts.join(' ');
+}
+seg('#at-mode', v => { att.mode = v; att.head = 0; renderAttention(); });
+seg('#at-heads', v => { att.heads = +v; att.head = Math.min(att.head, att.heads - 1); renderAttention(); });
+$('#at-head').addEventListener('click', e => { const b = e.target.closest('button'); if (b){ att.head = +b.dataset.v; renderAttention(); } });
+$('#at-causal').onchange = e => { att.causal = e.target.checked; renderAttention(); };
+$('#at-scale').onchange = e => { att.scale = e.target.checked; renderAttention(); };
+$('#at-reseed').onclick = () => { att.seed++; renderAttention(); };
+$('#at-heat').addEventListener('click', e => { const c = e.target.closest('[data-q]'); if (c){ att.q = +c.dataset.q; renderAttention(); } });
+
+/* ================= CHAPTER 4: GPT architecture ================= */
+const PRESETS = {small:{E:768,L:12,H:12}, medium:{E:1024,L:24,H:16}, large:{E:1280,L:36,H:20}, xl:{E:1600,L:48,H:25}};
+const gpt = {V:50257, C:1024, E:768, L:12, H:12, tie:false, qkv:false, sel:'mha'};
+function gptCount({V, C, E, L, tie, qkv}){
+  const tok = V*E, pos = C*E, ln = 2*E, mha = 3*E*E + (qkv ? 3*E : 0) + E*E + E, ff = E*4*E + 4*E + 4*E*E + E;
+  const block = 2*ln + mha + ff, fin = 2*E, head = tie ? 0 : V*E;
+  return {tok, pos, ln, mha, ff, block, fin, head, total: tok + pos + L*block + fin + head};
+}
+function renderGPT(){
+  const g = gpt, c = gptCount(g), {V, C, E, L, H} = g, B = 2, T = 4;
+  const hd = E / H;
+  for (const k of ['E','L','H','C']){ $('#g-'+k).value = g[k]; $('#g-'+k+'-o').textContent = g[k]; }
+  const match = Object.entries(PRESETS).find(([, p]) => p.E === E && p.L === L && p.H === H);
+  setSeg('#g-preset', match ? match[0] : '');
+  const layers = {
+    ids:  {nm:'Token IDs', shp:`[${B}, ${T}]`, p:0, info:`Integer IDs from the tokenizer. In this example, a batch of ${B} sequences with ${T} tokens each.`},
+    tok:  {nm:'Token embedding', shp:`[${B}, ${T}, ${E}]`, p:c.tok, info:`A lookup table with one learned ${E}-dimensional vector for each of the ${fmt(V)} vocabulary entries.`},
+    pos:  {nm:'+ Positional embedding', shp:`[${T}, ${E}]`, p:c.pos, info:`A second lookup table with one vector for each position up to the context length (${fmt(C)}). It is added to the token vectors so the model knows word order.`},
+    drop: {nm:'Dropout', thin:true, shp:'', p:0, info:'Randomly zeroes activations during training only. It has no parameters.'},
+    ln1:  {nm:'LayerNorm 1', shp:`[${B}, ${T}, ${E}]`, p:c.ln, info:`Normalises each token vector to mean 0 and variance 1, then applies a learned scale and shift: 2 × ${E} parameters.`},
+    mha:  {nm:'Masked multi-head attention', shp:`${H} heads × ${Number.isInteger(hd) ? hd : hd.toFixed(1)} dims`, p:c.mha, info:`Query, key and value projections (3 × ${E}²) plus an output projection (${E}² + ${E}). The vector is split into ${H} heads, and each head attends only to earlier tokens.`},
+    sc1:  {nm:'Dropout + shortcut', thin:true, shp:'', p:0, info:'The shortcut adds the sub-layer’s input back to its output. This keeps gradients flowing through very deep stacks.'},
+    ln2:  {nm:'LayerNorm 2', shp:`[${B}, ${T}, ${E}]`, p:c.ln, info:'Same as LayerNorm 1, applied before the feed-forward network (the “pre-LN” layout).'},
+    ff:   {nm:'Feed-forward (GELU)', shp:`${E} → ${4*E} → ${E}`, p:c.ff, info:`Expands each token to ${4*E} dims, applies GELU and projects back to ${E}. It works on each position independently and holds about ${Math.round(c.ff / c.block * 100)}% of each block’s parameters.`},
+    sc2:  {nm:'Dropout + shortcut', thin:true, shp:'', p:0, info:'A second residual connection around the feed-forward network.'},
+    fin:  {nm:'Final LayerNorm', shp:`[${B}, ${T}, ${E}]`, p:c.fin, info:'One last normalisation before the output projection.'},
+    head: {nm:'Linear output head', shp:`[${B}, ${T}, ${fmt(V)}]`, p:c.head, info: g.tie ? `With weight tying, the output head reuses the token-embedding matrix, which saves ${fmt(V*E)} parameters (GPT-2 does this).` : `Projects every token vector to ${fmt(V)} logits, one score for each possible next token. Turn on weight tying to reuse the embedding matrix here.`},
+  };
+  const row = k => { const l = layers[k]; return `<button class="layer${l.thin ? ' thin' : ''}${g.sel === k ? ' on' : ''}" data-k="${k}"><span class="nm">${l.nm}</span><span class="pr">${l.p ? short(l.p) : (k === 'head' && g.tie ? 'shared' : '')}</span>${l.shp ? `<span class="shp">${l.shp}</span>` : ''}</button>`; };
+  $('#g-arch').innerHTML = ['ids','tok','pos','drop'].map(row).join('') +
+    `<div class="block"><div class="block-tag"><span>Transformer block × ${L}</span><span>${short(c.block)} each</span></div>${['ln1','mha','sc1','ln2','ff','sc2'].map(row).join('')}</div>` +
+    ['fin','head'].map(row).join('');
+  $('#g-total').textContent = fmt(c.total);
+  $('#g-kpis').innerHTML = [
+    [(c.total * 4 / 2**20).toFixed(1) + ' MB', 'weights in float32'],
+    [Number.isInteger(hd) ? hd : '—', 'head dim (emb_dim / n_heads)'],
+    [short(c.block * L), 'inside transformer blocks'],
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('') +
+    (Number.isInteger(hd) ? '' : `<div class="warn">emb_dim (${E}) must be divisible by n_heads (${H}).</div>`);
+  const parts = [
+    ['Token embedding', c.tok, 'var(--c1)'], ['Positional embedding', c.pos, 'var(--c5)'],
+    ['Attention', c.mha * L, 'var(--c2)'], ['Feed-forward', c.ff * L, 'var(--c3)'],
+    ['LayerNorms', c.ln * 2 * L + c.fin, 'var(--c6)'], ['Output head', c.head, 'var(--c4)'],
+  ].filter(p => p[1] > 0);
+  $('#g-stack').innerHTML = parts.map(([n, v, col]) => `<span title="${n}: ${fmt(v)}" style="flex-grow:${v};background:${col}"></span>`).join('');
+  $('#g-legend').innerHTML = parts.map(([n, v, col]) => `<i style="background:${col}"></i><span>${n}</span><span class="v">${short(v)} · ${(v / c.total * 100).toFixed(1)}%</span>`).join('');
+  const s = layers[g.sel];
+  $('#g-info').innerHTML = `<b>${s.nm}${s.shp ? ` <span class="shp" style="font:12px var(--mono);color:var(--muted)">${s.shp}</span>` : ''}</b>${s.info}${s.p ? `<div style="font:12px var(--mono);color:var(--muted);margin-top:6px">${fmt(s.p)} parameters${['ln1','mha','ln2','ff'].includes(g.sel) ? ` per block × ${L} = ${fmt(s.p * L)}` : ''}</div>` : ''}`;
+}
+seg('#g-preset', v => { Object.assign(gpt, PRESETS[v], {C:1024}); renderGPT(); });
+for (const k of ['E','L','H','C']) $('#g-'+k).addEventListener('input', e => { gpt[k] = +e.target.value; renderGPT(); });
+$('#g-tie').onchange = e => { gpt.tie = e.target.checked; renderGPT(); };
+$('#g-qkv').onchange = e => { gpt.qkv = e.target.checked; renderGPT(); };
+$('#g-arch').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b){ gpt.sel = b.dataset.k; renderGPT(); } });
+
+/* ================= CHAPTER 5: sampling ================= */
+const PROMPT = 'The cat sat on the';
+const CANDS = [['mat',5.9],['floor',5.3],['rug',5.0],['sofa',4.5],['bed',3.9],['roof',3.0],['keyboard',2.3],['piano',1.2],['moon',0.8],['pizza',0.2]];
+const sm = {T:1, k:10, counts:null, n:0, last:null, target:0};
+function probs(T, k){
+  const order = CANDS.map((_, i) => i).sort((a, b) => CANDS[b][1] - CANDS[a][1]);
+  if (T === 0) return CANDS.map((_, i) => i === order[0] ? 1 : 0);
+  const keep = new Set(order.slice(0, k));
+  return softmax(CANDS.map(([, l], i) => keep.has(i) ? l / T : -Infinity));
+}
+function draw(p){ let r = Math.random(), acc = 0; for (let i = 0; i < p.length; i++){ acc += p[i]; if (r < acc) return i; } return p.findLastIndex(x => x > 0); }
+function renderSampling(){
+  const p = probs(sm.T, sm.k);
+  $('#s-T-o').textContent = sm.T === 0 ? 'greedy' : sm.T.toFixed(2);
+  $('#s-k-o').textContent = sm.k >= CANDS.length ? 'off' : sm.k;
+  $('#s-sent').innerHTML = `${PROMPT} ${sm.last === null ? '<span style="color:var(--muted)">___</span>' : `<mark>${CANDS[sm.last][0]}</mark>`}`;
+  $('#s-bars').innerHTML = CANDS.map(([w, l], i) => {
+    const off = p[i] === 0 ? ' off' : '';
+    const emp = sm.counts ? sm.counts[i] / sm.n : 0;
+    return `<button class="nm${i === sm.target ? ' tgt' : ''}${off}" data-i="${i}" title="Make “${w}” the training target">${w}<small>${l.toFixed(1)}</small></button>
+      <div class="bar"><span style="width:${(p[i]*100).toFixed(2)}%"></span>${sm.counts ? `<em style="width:${(emp*100).toFixed(2)}%"></em>` : ''}</div>
+      <span class="v${off}">${(p[i]*100).toFixed(1)}%</span>`;
+  }).join('');
+  $('#s-legend').innerHTML = `Small grey numbers are logits. Purple bars show probabilities.${sm.counts ? ` Orange shows the observed share over <strong>${sm.n}</strong> samples.` : ''} ${sm.T === 0 ? 'At temperature 0 the model always picks the top logit (greedy decoding), so the output is fully predictable.' : sm.T < .6 ? 'Low temperature: the output is safe and repetitive.' : sm.T > 1.5 ? 'High temperature: “moon” and “pizza” start to show up.' : ''}`;
+  const p1 = probs(1, CANDS.length)[sm.target], loss = -Math.log(p1);
+  $('#s-loss').innerHTML = [
+    [`“${CANDS[sm.target][0]}”`, 'target token'], [(p1*100).toFixed(1) + '%', 'model probability (T = 1)'],
+    [loss.toFixed(3), 'loss = −ln p'], [(1/p1).toFixed(2), 'perplexity = eˡᵒˢˢ'],
+  ].map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+  $('#s-loss-note').innerHTML = `Training nudges every weight in the network so that this probability goes up. Perplexity ≈ ${(1/p1).toFixed(1)} means the model is as unsure as if it were choosing uniformly among about ${Math.max(1, Math.round(1/p1))} words. Temperature and top-k only change <em>generation</em>. The loss always uses the raw softmax.`;
+}
+const resetCounts = () => { sm.counts = null; sm.n = 0; };
+$('#s-T').addEventListener('input', e => { sm.T = +e.target.value; resetCounts(); renderSampling(); });
+$('#s-k').addEventListener('input', e => { sm.k = +e.target.value; resetCounts(); renderSampling(); });
+$('#s-one').onclick = () => { sm.last = draw(probs(sm.T, sm.k)); renderSampling(); };
+$('#s-many').onclick = () => {
+  const p = probs(sm.T, sm.k); sm.counts = sm.counts || CANDS.map(() => 0);
+  for (let i = 0; i < 500; i++) sm.counts[draw(p)]++; sm.n += 500; renderSampling();
+};
+$('#s-bars').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b){ sm.target = +b.dataset.i; renderSampling(); } });
+
+
+renderTokens(); renderAttention(); renderGPT(); renderSampling();
+</script>
+</body>
+</html>

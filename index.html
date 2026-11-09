@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Atlas</title>
+<meta name="description" content="A visual, hands-on companion to building an LLM from scratch. Train a real tiny transformer on your own words in your browser and watch every step: tokens, attention, the training loop and text generation.">
+<meta property="og:title" content="LLM Atlas: watch an AI learn to write">
+<meta property="og:description" content="A real tiny transformer trains on your own words, right in your browser.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#fbf9f4">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%236b4eff'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23fff' stroke-width='2.5' stroke-dasharray='4 3'/%3E%3Ccircle cx='16' cy='8' r='3' fill='%23ffb21e'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbf9f4;--paper:#ffffff;--ink:#191530;--ink-2:#4a4660;--muted:#8a8699;--line:#ebe6dc;
+  --violet:#6b4eff;--violet-2:#efebff;--coral:#ff6a55;--coral-2:#ffebe6;--mint:#0fae7a;--mint-2:#ddf6ec;--sun:#ffb21e;--sun-2:#fff2d4;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --shadow:0 1px 2px rgba(25,21,48,.04),0 10px 34px rgba(25,21,48,.06);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--violet)}
+button{font-family:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+@media(max-width:600px){.wrap{padding:0 16px}}
+.narrow{max-width:820px}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
+.nav.scrolled{border-bottom-color:var(--line)}
+.nav-in{display:flex;align-items:center;gap:12px;height:62px}
+.logo{display:flex;align-items:center;gap:9px;font:700 17px var(--display);color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.tabs{margin-left:auto;display:flex;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px}
+.tab{font:500 14px var(--sans);color:var(--ink-2);text-decoration:none;padding:7px 14px;border-radius:999px;white-space:nowrap}
+.tab.on{background:var(--ink);color:#fff}
+.tab:not(.on):hover{background:var(--violet-2);color:var(--violet)}
+@media(max-width:480px){.logo span{display:none}.tab{padding:7px 11px;font-size:13px}}
+
+/* hero */
+.hero{position:relative;isolation:isolate;overflow:hidden;padding:76px 0 100px}
+.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;z-index:-1;pointer-events:none}
+.b1{width:420px;height:420px;background:#cfc3ff;top:-120px;left:-80px}
+.b2{width:360px;height:360px;background:#ffd2c9;top:40px;right:-90px}
+.b3{width:300px;height:300px;background:#ffe6a8;bottom:-60px;left:38%}
+.center{text-align:center}
+.live-chip{display:inline-flex;align-items:center;gap:8px;font:500 13px var(--sans);color:var(--ink-2);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 14px;box-shadow:var(--shadow)}
+.live-chip i{width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px var(--mint-2)}
+h1{font:750 clamp(46px,8.4vw,94px)/.96 var(--display);letter-spacing:-.04em;margin:26px 0 22px}
+h1 em{font-style:normal;background:linear-gradient(95deg,var(--violet),var(--coral) 70%,var(--sun));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:clamp(17px,2.2vw,20px);color:var(--ink-2);max-width:640px;margin:0 auto}
+.composer{margin-top:44px;background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:16px}
+.presets{display:flex;flex-wrap:wrap;gap:8px;padding:2px 2px 12px}
+.preset{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--bg);color:var(--ink-2);font:500 13px var(--sans);padding:7px 13px;border-radius:999px;cursor:pointer;transition:all .15s}
+.preset i{width:8px;height:8px;border-radius:50%}
+.preset:hover{border-color:var(--ink-2);color:var(--ink)}
+.preset.on{background:var(--ink);border-color:var(--ink);color:#fff}
+textarea,input[type=text]{font:14px/1.65 var(--mono);color:var(--ink);background:transparent;border:0;width:100%;resize:vertical;outline:none}
+#text{min-height:160px;padding:10px 6px;border-top:1px dashed var(--line)}
+.composer-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:12px}
+.meta{font:13px var(--mono);color:var(--muted)}
+.meta.bad{color:var(--coral)}
+.cta{margin-left:auto;display:inline-flex;align-items:center;gap:10px;border:0;background:var(--violet);color:#fff;font:600 16px var(--sans);padding:14px 26px;border-radius:999px;cursor:pointer;box-shadow:0 8px 22px rgba(107,78,255,.32);transition:transform .15s,box-shadow .15s}
+.cta:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(107,78,255,.4)}
+.cta:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* sections */
+.section{padding:84px 0}
+.sec-head{max-width:700px;margin:0 auto 40px;text-align:center}
+.kicker{display:inline-block;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--violet);background:var(--violet-2);padding:5px 11px;border-radius:999px}
+h2{font:720 clamp(32px,5vw,52px)/1.04 var(--display);letter-spacing:-.035em;margin:16px 0 14px}
+.sec-head p{color:var(--ink-2);font-size:18px;margin:0}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:26px}
+@media(max-width:600px){.card{padding:18px;border-radius:18px}.section{padding:60px 0}}
+.label{font:600 12px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+
+/* studio */
+.studio{display:grid;grid-template-columns:360px minmax(0,1fr);gap:20px}
+@media(max-width:920px){.studio{grid-template-columns:minmax(0,1fr)}}
+.loop-svg{width:100%;max-width:300px;display:block;margin:0 auto}
+.loop-svg .track{fill:none;stroke:var(--line);stroke-width:3;stroke-dasharray:2 7;stroke-linecap:round}
+.loop-svg .arrow{fill:var(--muted)}
+.loop-svg .node circle{fill:var(--paper);stroke-width:2.5;transition:fill .2s}
+.loop-svg .node text{font:600 13px var(--sans);text-anchor:middle;dominant-baseline:central;transition:fill .2s}
+.loop-svg .node{cursor:help}
+.loop-svg .orbit{fill:var(--ink)}
+.loop-svg .lc-num{font:700 34px var(--display);text-anchor:middle;fill:var(--ink)}
+.loop-svg .lc-lbl{font:500 12px var(--sans);text-anchor:middle;fill:var(--muted)}
+.loop-cap{min-height:118px;margin-top:10px;text-align:center}
+.loop-cap b{display:block;font:650 18px var(--display);margin-bottom:4px}
+.loop-cap p{margin:0;color:var(--ink-2);font-size:14.5px}
+.chart-top{display:flex;gap:28px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.metric{font:720 40px/1 var(--display);letter-spacing:-.03em;margin-top:6px}
+.metric-sub{font-size:13px;color:var(--muted);margin-top:4px}
+.play{margin-left:auto;display:flex;gap:8px;align-items:center}
+.round{width:52px;height:52px;border-radius:50%;border:0;background:var(--ink);color:#fff;cursor:pointer;display:grid;place-items:center;transition:transform .15s}
+.round:hover{transform:scale(1.05)}
+.round.alt{background:var(--paper);color:var(--ink);border:1px solid var(--line);width:44px;height:44px}
+#chart{width:100%;height:280px;display:block}
+.chart-foot{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;margin-top:10px;font-size:13px;color:var(--ink-2)}
+.key{display:inline-flex;align-items:center;gap:7px}
+.key i{width:16px;height:3px;border-radius:2px;display:inline-block}
+.lr{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--muted)}
+.lr output{font:600 12px var(--mono);color:var(--ink);min-width:6ch}
+input[type=range]{accent-color:var(--violet);width:120px}
+.fit-note{margin:12px 0 0;font-size:14px;color:var(--ink-2);background:var(--coral-2);border-radius:12px;padding:10px 14px;display:none}
+.fit-note.on{display:block}
+.writes-card{margin-top:20px}
+.writes-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.snap-note{font:500 15px var(--display);color:var(--violet)}
+.writes{font:16.5px/1.75 var(--mono);white-space:pre-wrap;word-break:break-word;min-height:150px;margin:14px 0 18px;color:var(--ink)}
+.writes .caret{display:inline-block;width:9px;height:1.1em;background:var(--violet);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.timeline{display:flex;flex-wrap:wrap;gap:8px}
+.snap{font:500 12px var(--mono);border:1px solid var(--line);background:var(--bg);color:var(--ink-2);padding:6px 11px;border-radius:999px;cursor:pointer}
+.snap.on{background:var(--violet);border-color:var(--violet);color:#fff}
+.snap:disabled{opacity:.35;cursor:default}
+.empty-hint{color:var(--muted);font-family:var(--sans);font-size:15px}
+
+/* guess */
+.ctx-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.cbox{width:40px;height:54px;border-radius:11px;border:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font:600 18px var(--mono);color:var(--ink);transition:all .2s}
+.cbox small{font:500 10px var(--mono);color:var(--muted);margin-top:2px}
+.cbox.ws{color:var(--muted)}
+.cbox.q{border:2px dashed var(--coral);background:var(--coral-2);color:var(--coral);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+.show-ids .cbox:not(.q){font-size:13px;color:var(--violet)}
+.show-ids .cbox small{display:none}
+@media(max-width:600px){.cbox{width:30px;height:42px;font-size:15px;border-radius:8px}.cbox small{font-size:8px}}
+.tools{display:flex;justify-content:center;gap:12px 22px;flex-wrap:wrap;margin:22px 0 4px;align-items:center}
+.switch{display:inline-flex;align-items:center;gap:9px;font-size:14px;color:var(--ink-2);cursor:pointer;user-select:none}
+.switch input{appearance:none;width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;transition:background .2s;margin:0}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.switch input:checked{background:var(--violet)}
+.switch input:checked::after{transform:translateX(16px)}
+.ghost{border:1px solid var(--line);background:var(--paper);color:var(--ink);font:500 14px var(--sans);padding:9px 16px;border-radius:999px;cursor:pointer}
+.ghost:hover{border-color:var(--violet);color:var(--violet)}
+.guess-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:36px;margin-top:30px;align-items:center}
+@media(max-width:760px){.guess-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.pbars{display:grid;grid-template-columns:44px minmax(0,1fr) 54px;gap:10px 12px;align-items:center}
+.ptile{height:38px;border-radius:10px;display:grid;place-items:center;font:600 16px var(--mono);background:var(--violet-2);color:var(--violet)}
+.ptile.ok{background:var(--mint);color:#fff}
+.pbar{height:14px;border-radius:999px;background:var(--bg);overflow:hidden}
+.pbar span{display:block;height:100%;border-radius:999px;background:var(--violet);transition:width .35s ease}
+.pbar span.ok{background:var(--mint)}
+.pct{font:600 13px var(--mono);text-align:right;color:var(--ink-2)}
+.verdict{text-align:center;padding:22px;border-radius:20px;background:var(--bg)}
+.verdict .ans{width:76px;height:76px;margin:0 auto 12px;border-radius:20px;background:var(--mint);color:#fff;display:grid;place-items:center;font:700 34px var(--mono)}
+.verdict .big{font:720 34px/1 var(--display);letter-spacing:-.02em}
+.verdict p{margin:6px 0 0;color:var(--ink-2);font-size:14px}
+
+/* write */
+.write-bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.write-bar input[type=text]{flex:1 1 260px;font-size:16px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:13px 20px}
+.write-bar input[type=text]:focus{border-color:var(--violet);box-shadow:0 0 0 4px var(--violet-2)}
+.write-bar .cta{margin-left:0}
+.temp{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2)}
+.temp output{font:600 12px var(--mono);color:var(--ink);min-width:7ch}
+.w-out{font:18px/1.9 var(--mono);white-space:pre-wrap;word-break:break-word;min-height:140px;margin:24px 0 14px;padding:20px 22px;border-radius:18px;background:var(--bg)}
+.w-out .pr{color:var(--violet);font-weight:600}
+.w-out .gc{border-radius:4px;cursor:default}
+.w-out .gc:hover{outline:2px solid var(--ink)}
+.legend-row{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;border:1px solid var(--line)}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:#fff;font:13px/1.5 var(--sans);padding:9px 12px;border-radius:12px;max-width:260px;opacity:0;transition:opacity .12s;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+#tip b{font-family:var(--mono)}
+
+/* look */
+.look-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;padding:6px 0}
+.lbox{width:44px;height:56px;border-radius:12px;display:grid;place-items:center;font:600 19px var(--mono);border:1px solid var(--line);cursor:pointer;transition:background .2s,color .2s;user-select:none}
+.lbox.sel{outline:3px solid var(--coral);outline-offset:2px}
+.lbox.future{opacity:.25}
+@media(max-width:600px){.lbox{width:30px;height:42px;font-size:15px;border-radius:8px}}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:none;color:var(--ink-2);font:500 13px var(--sans);padding:6px 12px;border-radius:999px;cursor:pointer}
+.seg button.on{background:var(--ink);color:#fff}
+.look-input{max-width:420px;margin:0 auto 22px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:10px 18px;display:flex;gap:10px;align-items:center}
+.look-input span{font-size:13px;color:var(--muted);white-space:nowrap}
+.look-cap{text-align:center;color:var(--ink-2);margin:20px auto 0;max-width:620px;font-size:15.5px}
+.look-cap b{font-family:var(--mono);color:var(--coral)}
+
+/* scale + cta */
+.scale{background:linear-gradient(120deg,var(--violet-2),var(--sun-2) 60%,var(--coral-2));border:0}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center;margin-top:30px}
+.vs .col{background:rgba(255,255,255,.7);border-radius:20px;padding:22px}
+.vs .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px dashed rgba(25,21,48,.1)}
+.vs .row:last-child{border:0}
+.vs .row b{font:720 26px var(--display);letter-spacing:-.02em}
+.vs .row span{color:var(--ink-2);font-size:14px;text-align:right}
+.vs .x{font:720 22px var(--display);color:var(--ink-2);text-align:center}
+@media(max-width:760px){.vs{grid-template-columns:1fr}}
+.next{display:flex;align-items:center;gap:24px;text-decoration:none;color:inherit;margin-top:20px;transition:transform .2s}
+.next:hover{transform:translateY(-2px)}
+.next .arrow-c{margin-left:auto;flex:none;width:56px;height:56px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:22px}
+.next h3{font:700 26px var(--display);letter-spacing:-.02em;margin:6px 0 4px}
+.next p{margin:0;color:var(--ink-2)}
+footer{padding:46px 0 70px;color:var(--muted);font-size:13.5px;text-align:center}
+.sig{font:650 20px var(--display);color:var(--ink);letter-spacing:-.01em}
+.heart{color:var(--coral);display:inline-block;animation:beat 1.6s ease-in-out infinite}
+@keyframes beat{0%,60%,100%{transform:scale(1)}20%{transform:scale(1.25)}40%{transform:scale(.95)}}
+.sig-link{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font:500 14px var(--sans);color:var(--violet);text-decoration:none;padding:8px 16px;border-radius:999px;background:var(--violet-2);transition:transform .15s}
+.sig-link:hover{transform:translateY(-1px)}
+.fine{max-width:620px;margin:22px auto 0;padding-top:20px;border-top:1px solid var(--line);line-height:1.7}
+.story{margin-top:20px;padding:34px}
+.story h3{font:720 clamp(26px,3.6vw,36px)/1.1 var(--display);letter-spacing:-.03em;margin:14px 0 14px}
+.story p{color:var(--ink-2);font-size:16.5px;max-width:720px;margin:0 0 12px}
+.book-map{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.book-map a{display:inline-flex;align-items:center;gap:8px;font:500 13.5px var(--sans);color:var(--ink);text-decoration:none;padding:8px 14px;border-radius:999px;background:var(--bg);border:1px solid var(--line);transition:border-color .15s,color .15s}
+.book-map a:hover{border-color:var(--violet);color:var(--violet)}
+.book-map b{font:600 11px var(--mono);color:var(--violet);background:var(--violet-2);padding:2px 7px;border-radius:999px}
+.book-chip{display:inline-block;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--violet);background:rgba(239,235,255,.9);border:1px solid #e0d9ff;padding:7px 14px;border-radius:999px;box-shadow:var(--shadow)}
+
+/* inside the model */
+.wrap.wide{max-width:1340px}
+.inside-card{padding:22px}
+.inside-bar{display:flex;gap:12px 16px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.inside-bar .look-input{margin:0;flex:1 1 220px;max-width:330px}
+.inside-bar .cta{margin-left:0;padding:12px 22px;font-size:15px}
+.live-badge{font:600 12px var(--mono);color:var(--mint);background:var(--mint-2);padding:6px 12px;border-radius:999px}
+.live-badge.idle{color:var(--muted);background:var(--bg)}
+.scale-key{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.scale-key i{width:34px;height:10px;border-radius:3px;display:inline-block}
+.scale-key i.neg{background:linear-gradient(90deg,rgba(255,106,85,1),rgba(255,106,85,.08))}
+.scale-key i.pos{background:linear-gradient(90deg,rgba(107,78,255,.08),rgba(107,78,255,1));margin-left:8px}
+.flow-scroll{overflow-x:auto;padding:10px 4px 16px;scrollbar-width:thin}
+.flow{position:relative;display:flex;align-items:flex-start;gap:26px;width:max-content;margin:0 auto}
+.flow-links{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:2}
+.flow-links path{fill:none;stroke:#e4ded3;stroke-width:1}
+.flow-links path.hot{stroke:var(--violet);stroke-width:2;stroke-opacity:.85}
+.flow-links path.att{stroke:var(--coral)}
+.fcol{position:relative;z-index:1;margin-top:42px;transition:opacity .35s}
+.block-frame .fcol{margin-top:40.5px}
+.fhead{display:block;width:100%;min-width:60px;height:58px;margin-bottom:6px;text-align:left;border:0;background:none;padding:0;cursor:pointer;font:inherit;color:inherit}
+.fhead b{display:block;font:650 14px/1.25 var(--display);white-space:nowrap}
+.fhead .sub{display:block;font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.fhead .n{display:inline-block;font:600 10px var(--mono);color:var(--violet);background:var(--violet-2);border-radius:999px;padding:1px 7px;margin-bottom:4px}
+.fhead:hover b{color:var(--violet)}
+.fcol.on .fhead b{color:var(--violet)}
+.fcol.on .fhead .n{background:var(--violet);color:#fff}
+.fcol.dim{opacity:.12}
+.fcol.pop{animation:pop .55s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes pop{0%{transform:translateY(10px) scale(.94);opacity:0}100%{transform:none;opacity:1}}
+.fbody{cursor:crosshair}
+.fbody canvas{display:block}
+.block-frame{position:relative;z-index:1;display:flex;gap:26px;border:1.5px dashed color-mix(in srgb,var(--violet) 45%,transparent);border-radius:18px;padding:0 14px 12px}
+.block-tag{position:absolute;top:8px;left:14px;right:14px;display:flex;justify-content:space-between;gap:14px;align-items:center;font:600 12px var(--mono);color:var(--violet);white-space:nowrap}
+.block-tag em{font-style:normal;color:var(--muted);margin-left:4px}
+.block-tag button{border:1px solid var(--line);background:var(--paper);color:var(--ink-2);font:600 11px var(--mono);width:22px;height:22px;border-radius:7px;margin-left:4px;cursor:pointer;padding:0}
+.block-tag button.on{background:var(--violet);border-color:var(--violet);color:#fff}
+.trow{height:24px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.tchip{min-width:28px;height:24px;padding:0 4px;border-radius:7px;display:grid;place-items:center;font:600 13px var(--mono);border:1px solid var(--line);background:var(--paper);transition:background .25s}
+.tchip.fut{opacity:.4}
+.tchip.ok{background:var(--mint-2);border-color:var(--mint);color:var(--mint)}
+.tchip.miss{background:var(--bg);color:var(--ink-2)}
+.tchip.pred{background:var(--violet-2);border-color:var(--violet);color:var(--violet)}
+.tchip.key{outline:2px solid var(--coral)}
+.trow.hl .tchip{box-shadow:0 0 0 2px var(--ink)}
+.tid{font:10.5px var(--mono);color:var(--muted);min-width:22px}
+.tour-nav{display:flex;align-items:center;gap:10px;justify-content:center;margin:6px 0 16px;flex-wrap:wrap}
+.tour-nav .ghost{padding:7px 14px}
+.tour-nav .ghost:disabled{opacity:.35;cursor:default}
+.tour-dots{display:flex;gap:6px;align-items:center}
+.tour-dots i{width:9px;height:9px;border-radius:999px;background:var(--line);cursor:pointer;transition:all .25s}
+.tour-dots i.on{background:var(--violet);width:26px}
+.explain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:30px;padding:26px;border-radius:20px;background:var(--bg);align-items:start;animation:pop .4s ease}
+@media(max-width:820px){.explain{grid-template-columns:minmax(0,1fr);padding:18px}}
+.explain h3{font:720 26px/1.15 var(--display);letter-spacing:-.02em;margin:12px 0 10px}
+.explain p{margin:0 0 14px;color:var(--ink-2);font-size:15.5px}
+.shape{font:12.5px var(--mono);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:inline-block;color:var(--ink);word-break:break-word}
+.ex-viz{min-width:0}
+.ex-viz .lab{font:600 11px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin:12px 0 6px}
+.ex-viz .lab:first-child{margin-top:0}
+.ex-viz canvas{display:block;max-width:100%}
+.eq{font:700 16px var(--mono);color:var(--muted);margin:6px 0 -4px}
+.concept{font-size:13px;color:var(--muted);margin:10px 0 0}
+.vocab{display:flex;flex-wrap:wrap;gap:4px}
+.vocab span{display:inline-flex;flex-direction:column;align-items:center;min-width:28px;padding:3px 4px;border-radius:7px;background:var(--paper);border:1px solid var(--line);font:600 13px var(--mono)}
+.vocab span small{font:9.5px var(--mono);color:var(--muted)}
+.vocab span.on{background:var(--violet);border-color:var(--violet);color:#fff}
+.vocab span.on small{color:#e6e0ff}
+.attn-table{display:grid;grid-template-columns:auto 52px minmax(0,1fr) 42px;gap:6px 10px;align-items:center}
+.attn-table .h{font:600 10.5px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.attn-table .sc{font:12px var(--mono);color:var(--ink-2);text-align:right}
+.attn-table .pbar span{background:var(--violet)}
+.grad-card{margin-top:20px}
+.grad-card h3{font:720 24px var(--display);letter-spacing:-.02em;margin:6px 0 6px}
+.grad-card p{margin:0;color:var(--ink-2);max-width:760px}
+.backflow{position:relative;height:22px;margin:18px 0 4px;display:flex;align-items:center;justify-content:space-between;font:600 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.backflow::before{content:"";position:absolute;left:90px;right:90px;top:50%;height:3px;margin-top:-1.5px;border-radius:999px;background:repeating-linear-gradient(90deg,var(--coral) 0 10px,transparent 10px 20px);background-size:20px 3px;opacity:.25}
+.backflow span{position:relative;z-index:1;background:var(--paper);padding:0 10px}
+.backflow.on::before{opacity:.9;animation:flowleft .5s linear infinite}
+@keyframes flowleft{to{background-position:-20px 0}}
+.grad{display:grid;grid-template-columns:repeat(var(--n,6),minmax(0,1fr));gap:12px;margin-top:8px}
+@media(max-width:760px){.grad{grid-template-columns:repeat(3,minmax(0,1fr))}.backflow::before{left:70px;right:70px}}
+.gtile{background:var(--bg);border-radius:16px;padding:16px 10px 14px;text-align:center}
+.gmeter{height:96px;width:28px;margin:0 auto 12px;border-radius:999px;background:var(--paper);border:1px solid var(--line);position:relative;overflow:hidden}
+.gmeter span{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(0deg,var(--coral),var(--sun));border-radius:999px;transition:height .45s ease}
+.gtile b{display:block;font:650 14px var(--display)}
+.gtile small{display:block;font:11px var(--mono);color:var(--muted)}
+.gtile .gv{color:var(--coral);font-weight:600;margin-top:4px}
+
+/* meaning map */
+.map-grid{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:26px;align-items:start}
+@media(max-width:820px){.map-grid{grid-template-columns:minmax(0,1fr)}}
+#map{width:100%;height:440px;display:block;border-radius:18px;background:var(--bg);cursor:crosshair;touch-action:none}
+@media(max-width:600px){#map{height:340px}}
+.mlegend{display:flex;flex-direction:column;gap:9px;font-size:14px;color:var(--ink-2)}
+.mlegend span{display:flex;align-items:center;gap:9px}
+.mlegend i{width:13px;height:13px;border-radius:50%;border:1.5px solid}
+.map-cap{margin:22px 0 0;padding:14px 16px;border-radius:14px;background:var(--bg);font-size:14.5px;color:var(--ink-2)}
+.map-cap b{font-family:var(--mono);color:var(--violet)}
+
+
+/* ---------- motion: flowing, auto-starting, engaging ---------- */
+.scroll-progress{position:fixed;top:0;left:0;right:0;height:3px;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--violet),var(--coral),var(--sun));z-index:30;pointer-events:none}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s ease,transform .9s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.next-nudge{display:flex;justify-content:center;margin-top:40px}
+.next-nudge a{display:inline-flex;align-items:center;gap:10px;font:500 14px var(--sans);color:var(--ink-2);text-decoration:none;padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--paper);box-shadow:var(--shadow);transition:color .2s,border-color .2s}
+.next-nudge a:hover{color:var(--violet);border-color:var(--violet)}
+.next-nudge a i{font-style:normal;display:inline-block;animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{50%{transform:translateY(5px)}}
+@keyframes tokin{from{opacity:0;transform:translateY(10px) scale(.9)}}
+@keyframes sweep{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes growx{from{transform:scaleX(0)}}
+@keyframes dash{to{stroke-dashoffset:-24}}
+
+/* hero: tokens drifting up */
+.floaty{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.floaty span{position:absolute;bottom:-50px;font:600 15px var(--mono);color:var(--violet);background:rgba(255,255,255,.75);border:1px solid var(--line);border-radius:9px;padding:4px 9px;box-shadow:0 4px 14px rgba(107,78,255,.08);opacity:0;animation:floatup linear infinite}
+.floaty span:nth-child(3n){color:var(--coral)}
+.floaty span:nth-child(4n){color:var(--mint)}
+@keyframes floatup{0%{transform:translateY(0) rotate(var(--r));opacity:0}12%{opacity:.8}80%{opacity:.55}100%{transform:translateY(-720px) rotate(calc(var(--r) * -1));opacity:0}}
+@media(max-width:700px){.floaty span:nth-child(n+8){display:none}}
+
+/* training loop: flowing track, pulsing nodes, comet trail */
+.loop-svg .track{stroke-dasharray:2 7}
+.studio.running .loop-svg .track{stroke:#cfc3ff;animation:dash 1.1s linear infinite}
+.loop-svg .ring{fill:none;stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center;pointer-events:none}
+.loop-svg .node.on .ring{animation:ring 1.3s ease-out infinite}
+@keyframes ring{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.5);opacity:0}}
+.loop-svg .orbit.t1{opacity:.35}
+.loop-svg .orbit.t2{opacity:.15}
+.studio.running .loop-svg .orbit:not(.t1):not(.t2){filter:drop-shadow(0 0 6px rgba(107,78,255,.8))}
+
+/* inside the model: flowing links, travelling sparks, sweep-in stages */
+.flow-links path.hot{stroke-dasharray:8 4;animation:dash .9s linear infinite}
+.flow-links path.att{stroke-dasharray:5 4;animation:dash .9s linear infinite}
+.flow-links .spark{fill:var(--violet);filter:drop-shadow(0 0 5px rgba(107,78,255,.95)) drop-shadow(0 0 12px rgba(107,78,255,.5))}
+.flow-links .spark.s1{fill:var(--coral);filter:drop-shadow(0 0 5px rgba(255,106,85,.9))}
+.fcol.passed .fhead .n{background:var(--mint);color:#fff}
+.fcol.passed .fhead .n::after{content:" ✓"}
+.fcol.on .fhead .n{box-shadow:0 0 0 4px var(--violet-2);animation:breathe 1.8s ease-in-out infinite}
+@keyframes breathe{50%{box-shadow:0 0 0 7px rgba(107,78,255,.12)}}
+.fcol.on .fbody{filter:drop-shadow(0 8px 18px rgba(107,78,255,.2))}
+.fcol.pop canvas,.fcol.pop #fx-tokens,.fcol.pop #fx-next{animation:sweep .9s cubic-bezier(.3,.7,.2,1) both}
+.tour-progress{height:3px;max-width:380px;margin:4px auto 0;border-radius:999px;background:var(--line);overflow:hidden;opacity:0;transition:opacity .3s}
+.tour-progress.on{opacity:1}
+.tour-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--mint));border-radius:999px;transition:width .1s linear}
+.flow-toast{text-align:center;font:600 14px var(--sans);color:var(--mint);max-height:0;opacity:0;overflow:hidden;transition:all .4s ease}
+.flow-toast.on{max-height:40px;opacity:1;margin-bottom:12px}
+#x-explain.fresh canvas{animation:sweep .8s cubic-bezier(.3,.7,.2,1) both}
+#x-explain.fresh .pbar span{animation:growx .7s cubic-bezier(.2,.8,.2,1) both;transform-origin:left}
+#x-explain.fresh .vocab span{animation:tokin .4s both;animation-delay:calc(var(--i,0) * 18ms)}
+#x-explain.fresh h3,#x-explain.fresh p,#x-explain.fresh .shape{animation:tokin .5s both}
+#x-explain.fresh p{animation-delay:.08s}
+#x-explain.fresh .shape{animation-delay:.16s}
+
+/* backward pass: a pulse travelling output → input */
+.grad.on .gtile{animation:gpulse 1.4s ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes gpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,106,85,0)}25%{box-shadow:0 0 0 2px rgba(255,106,85,.4),0 10px 26px rgba(255,106,85,.18)}}
+.gmeter span::after{content:"";position:absolute;inset:0;border-radius:999px;background:linear-gradient(180deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);background-size:100% 220%;animation:shimmer 1.5s linear infinite}
+@keyframes shimmer{from{background-position:0 120%}to{background-position:0 -120%}}
+
+/* one guess: letters arrive one by one */
+#g-ctx.fresh .cbox{animation:tokin .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 26ms)}
+.pbar span{position:relative;overflow:hidden}
+.pbar span::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);background-size:50% 100%;background-repeat:no-repeat;animation:glint 2.4s ease-in-out infinite}
+@keyframes glint{from{background-position:-60% 0}to{background-position:160% 0}}
+.auto-pill{display:inline-flex;align-items:center;gap:7px;font:600 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--violet);background:var(--violet-2);border-radius:999px;padding:5px 11px}
+.auto-pill i{width:7px;height:7px;border-radius:50%;background:var(--violet);animation:blinkdot 1.2s ease-in-out infinite}
+.auto-pill.off{color:var(--muted);background:var(--bg)}
+.auto-pill.off i{background:var(--muted);animation:none}
+@keyframes blinkdot{50%{opacity:.25}}
+
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.floaty{display:none}}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<div class="scroll-progress" id="sprog"></div>
+<nav class="nav" id="nav"><div class="wrap nav-in">
+  <a class="logo" href="./"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#6b4eff"/><circle cx="16" cy="16" r="8" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="4 3"/><circle cx="16" cy="8" r="3" fill="#ffb21e"/></svg><span>LLM Atlas</span></a>
+  <div class="tabs"><a class="tab on" href="./">Train a model</a><a class="tab" href="lab.html">Under the hood</a></div>
+</div></nav>
+
+<header class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="floaty" id="floaty"></div>
+  <div class="wrap narrow center">
+    <span class="book-chip">A visual companion to LLMs from scratch</span>
+    <h1>Watch an AI<br><em>learn to write.</em></h1>
+    <p class="lede">Train a real tiny transformer in your browser. Explore the ideas behind language models, one interactive step at a time.</p>
+  </div>
+  <div class="wrap narrow">
+    <div class="composer">
+      <div class="presets" id="presets"></div>
+      <textarea id="text" spellcheck="false" aria-label="Training text"></textarea>
+      <div class="composer-foot">
+        <span class="meta" id="text-meta"></span>
+        <button class="cta" id="start">Start training <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- 01 the loop -->
+<section class="section" id="studio" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">01 · The training loop</span>
+      <h2>Guess. Score. Blame. Nudge.</h2>
+      <p>Training is one small loop repeated thousands of times. Hover over each step to see what it does.</p>
+    </div>
+    <div class="studio">
+      <div class="card">
+        <svg class="loop-svg" id="loop" viewBox="0 0 300 300" role="img" aria-label="The training loop">
+          <circle class="track" cx="150" cy="150" r="104"/>
+          <g id="loop-arrows"></g>
+          <g id="loop-nodes"></g>
+          <circle class="orbit t2" id="orbit3" r="3.5" cx="150" cy="46"/><circle class="orbit t1" id="orbit2" r="5" cx="150" cy="46"/><circle class="orbit" id="orbit" r="6.5" cx="150" cy="46"/>
+          <text class="lc-num" id="loop-step" x="150" y="152">0</text>
+          <text class="lc-lbl" x="150" y="176">loops done</text>
+        </svg>
+        <div class="loop-cap" id="loop-cap"></div>
+      </div>
+      <div class="card">
+        <div class="chart-top">
+          <div><div class="label">Loss · how wrong it is</div><div class="metric" id="m-loss">—</div></div>
+          <div><div class="label">Confusion</div><div class="metric" id="m-ppl">—</div><div class="metric-sub" id="m-ppl-sub">letters it is torn between</div></div>
+          <div class="play">
+            <button class="round alt" id="reset" title="Reset to random weights" aria-label="Reset"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+            <button class="round" id="play" title="Train" aria-label="Play or pause training"></button>
+          </div>
+        </div>
+        <canvas id="chart"></canvas>
+        <div class="chart-foot">
+          <span class="key"><i style="background:var(--violet)"></i>on your text</span>
+          <span class="key" id="key-val"><i style="background:var(--coral)"></i>on text it never trained on</span>
+          <span class="key"><i style="background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 7px)"></i>random guessing</span>
+          <label class="lr" title="How big each nudge is">Step size <input type="range" id="lr" min="0" max="100" value="62"><output id="lr-o"></output></label>
+        </div>
+        <p class="fit-note" id="fit-note"></p>
+      </div>
+    </div>
+    <div class="card writes-card">
+      <div class="writes-head"><span class="label">What it writes at this point</span><span class="snap-note" id="snap-note"></span></div>
+      <div class="writes" id="writes"></div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 inside the model -->
+<section class="section" id="inside">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">02 · Inside the model</span>
+      <h2>Follow your words through the network.</h2>
+      <p>This is your model, live. Every coloured square is a real number inside it right now, and they shift as it trains. Hover over a row to follow one letter, click any stage to open it up, or let the walkthrough reveal it step by step.</p>
+    </div>
+  </div>
+  <div class="wrap wide">
+    <div class="card inside-card">
+      <div class="inside-bar">
+        <label class="look-input"><span>Input</span><input type="text" id="x-text" maxlength="12" spellcheck="false" aria-label="Text to send through the model"></label>
+        <button class="cta" id="x-tour">▶ Walk me through it</button>
+        <span class="live-badge idle" id="x-live">step 0</span>
+        <span class="scale-key"><i class="neg"></i>negative<i class="pos"></i>positive</span>
+      </div>
+      <div class="flow-scroll" id="flow-scroll"><div class="flow" id="flow"></div></div>
+      <div class="tour-progress" id="tour-prog"><i></i></div>
+      <div class="tour-nav" id="tour-nav"></div>
+      <div class="flow-toast" id="flow-toast"></div>
+      <div class="explain" id="x-explain"></div>
+    </div>
+    <div class="card grad-card">
+      <span class="label">Where learning happens</span>
+      <h3>The backward pass, live</h3>
+      <p>After every guess, the error flows backwards from the output to the embeddings. Each meter shows how hard that part's weights are being pushed right now (the size of its gradient). Watch the meters settle as the loss falls.</p>
+      <div class="backflow" id="backflow"><span>input side</span><span>← error flows this way</span><span>output side</span></div>
+      <div class="grad" id="grad"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 one guess -->
+<section class="section" id="guess">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">03 · One guess, up close</span>
+      <h2>Every step is a pile of tiny quizzes.</h2>
+      <p>Here is one of them. The model reads these characters from your text and has to guess what comes next. Keep it training and watch the right answer climb.</p>
+    </div>
+    <div class="card">
+      <div class="ctx-row" id="g-ctx"></div>
+      <div class="tools">
+        <label class="switch"><input type="checkbox" id="g-ids"> Show what the model actually sees</label>
+        <button class="ghost" id="g-next">Try another spot ↻</button>
+        <span class="auto-pill off" id="g-auto"><i></i>paused</span>
+      </div>
+      <div class="guess-grid">
+        <div><div class="label" style="margin-bottom:14px">Its top guesses</div><div class="pbars" id="g-bars"></div></div>
+        <div class="verdict" id="g-verdict"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 04 meaning map -->
+<section class="section" id="meaning">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">04 · What letters mean to it</span>
+      <h2>Letters find their neighbours.</h2>
+      <p>The model stores every character as a list of 32 numbers, its embedding. Squash those 32 dimensions down to two and you get this map. It starts as random scatter. As training goes on, characters that behave alike tend to drift together.</p>
+    </div>
+    <div class="card">
+      <div class="map-grid">
+        <canvas id="map" aria-label="2D map of character embeddings"></canvas>
+        <div>
+          <div class="mlegend" id="m-legend"></div>
+          <p class="map-cap" id="map-cap"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 write -->
+<section class="section" id="write">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker">05 · Your turn</span>
+      <h2>Start a sentence. Let it finish.</h2>
+      <p>It writes one character at a time, each time picking from the odds it has learned. Turn up creativity and it takes more risks.</p>
+    </div>
+    <div class="card">
+      <div class="write-bar">
+        <input type="text" id="w-prompt" maxlength="60" spellcheck="false" aria-label="Prompt">
+        <label class="temp">Creativity <input type="range" id="w-temp" min="0.1" max="1.6" step="0.05" value="0.7"><output id="w-temp-o"></output></label>
+        <button class="cta" id="w-go">Write ✦</button>
+      </div>
+      <div class="w-out" id="w-out"><span class="empty-hint">Its writing will appear here. Try it before and after training.</span></div>
+      <div class="legend-row"><span><i class="sw" style="background:var(--paper)"></i>confident</span><span><i class="sw" style="background:color-mix(in srgb,var(--sun) 70%,transparent)"></i>unsure</span><span>Hover over any letter to see what else it considered.</span></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- scale -->
+<section class="section" style="padding-top:20px">
+  <div class="wrap">
+    <div class="card scale">
+      <div class="center">
+        <span class="kicker" style="background:rgba(255,255,255,.7)">Same recipe, bigger kitchen</span>
+        <h2 style="margin-bottom:6px">Now scale it up.</h2>
+        <p style="color:var(--ink-2);margin:0 auto;max-width:620px">The model behind a chatbot runs the same loop you just watched. The difference is size: more weights, far more text, and a lot more computers.</p>
+      </div>
+      <div class="vs">
+        <div class="col"><div class="label">Your model</div>
+          <div class="row"><b id="sc-params">28K</b><span>weights</span></div>
+          <div class="row"><b id="sc-text">1K</b><span>characters of text</span></div>
+          <div class="row"><b>1 tab</b><span>in your browser</span></div></div>
+        <div class="x" id="sc-x">×6M</div>
+        <div class="col"><div class="label">GPT-3 (2020)</div>
+          <div class="row"><b>175B</b><span>weights</span></div>
+          <div class="row"><b>300B</b><span>tokens of text</span></div>
+          <div class="row"><b>A data centre</b><span>full of GPUs</span></div></div>
+      </div>
+    </div>
+    <div class="card story">
+      <span class="kicker">The story behind LLM Atlas</span>
+      <h3>From reading to understanding.</h3>
+      <p>After working through Sebastian Raschka’s <em>Build a Large Language Model (From Scratch)</em>, I wanted to turn what I’d learned into something you could see, touch, and experiment with.</p>
+      <p>LLM Atlas is my attempt to make the journey from tokens to transformers more intuitive, without needing to read hundreds of pages before getting started.</p>
+      <div class="label" style="margin-top:22px">Where the book’s big ideas show up here</div>
+      <div class="book-map">
+        <a href="#inside"><b>Ch 2</b>Text → tokens → embeddings</a>
+        <a href="#inside"><b>Ch 3</b>Masked multi-head attention</a>
+        <a href="lab.html#gpt"><b>Ch 4</b>The GPT architecture</a>
+        <a href="#studio"><b>Ch 5</b>Pretraining &amp; the loss</a>
+        <a href="#write"><b>Ch 5</b>Generating text</a>
+      </div>
+    </div>
+    <a class="card next" href="lab.html">
+      <div><span class="kicker">Go deeper</span><h3>Under the hood</h3><p>Tokenizers, attention maths, model sizes and sampling, each one as a playground.</p></div>
+      <span class="arrow-c">→</span>
+    </a>
+  </div>
+</section>
+
+<footer class="wrap">
+  <div class="sig">Made with <span class="heart" aria-label="love">♥</span> by Purvansh</div>
+  <a class="sig-link" href="https://www.linkedin.com/in/purvanshsingh/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.75h4v11H3v-11zm6.5 0h3.8v1.5h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1v5.45h-4v-4.83c0-1.15-.02-2.63-1.6-2.63-1.6 0-1.85 1.25-1.85 2.55v4.91h-4v-11z"/></svg>Connect with me on LinkedIn</a>
+  <div class="fine">An independent educational project inspired by Sebastian Raschka’s <em>Build a Large Language Model (From Scratch)</em>.<br>Not affiliated with or endorsed by the author or publisher. Official book code: <a href="https://github.com/rasbt/LLMs-from-scratch" target="_blank" rel="noopener">rasbt/LLMs-from-scratch</a>.</div>
+</footer>
+<div id="tip"></div>
+
+<script src="tinygpt.js"></script>
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const short = n => n >= 1e9 ? +(n/1e9).toFixed(1)+'B' : n >= 1e6 ? +(n/1e6).toFixed(1)+'M' : n >= 1e3 ? +(n/1e3).toFixed(1)+'K' : String(n);
+const vis = c => c === ' ' ? '␣' : c === '\n' ? '↵' : c === '\t' ? '⇥' : c;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ------------ presets ------------ */
+const PRESETS = [
+  {label:'Shakespeare', dot:'var(--violet)', text:`Shall I compare thee to a summer's day?
+Thou art more lovely and more temperate:
+Rough winds do shake the darling buds of May,
+And summer's lease hath all too short a date;
+Sometime too hot the eye of heaven shines,
+And often is his gold complexion dimm'd;
+And every fair from fair sometime declines,
+By chance or nature's changing course untrimm'd;
+But thy eternal summer shall not fade,
+Nor lose possession of that fair thou ow'st;
+Nor shall death brag thou wander'st in his shade,
+When in eternal lines to time thou grow'st:
+So long as men can breathe or eyes can see,
+So long lives this, and this gives life to thee.`},
+  {label:'Nursery rhyme', dot:'var(--sun)', text:`Twinkle, twinkle, little star,
+How I wonder what you are!
+Up above the world so high,
+Like a diamond in the sky.
+
+When the blazing sun is gone,
+When he nothing shines upon,
+Then you show your little light,
+Twinkle, twinkle, all the night.
+
+Then the traveller in the dark
+Thanks you for your tiny spark;
+He could not see which way to go,
+If you did not twinkle so.`},
+  {label:'Pancake recipe', dot:'var(--coral)', text:`Pancakes for two.
+Whisk one cup of flour, one egg and one cup of milk.
+Add a pinch of salt and a spoon of sugar.
+Heat the pan. Pour a little batter. Wait for bubbles, then flip.
+Stack the pancakes. Add butter. Add honey. Eat them warm.
+
+Pancakes for four.
+Whisk two cups of flour, two eggs and two cups of milk.
+Add a pinch of salt and two spoons of sugar.
+Heat the pan. Pour a little batter. Wait for bubbles, then flip.
+Stack the pancakes. Add berries. Add honey. Share them warm.`},
+  {label:'Python code', dot:'var(--mint)', text:`def greet(name):
+    return "Hello, " + name + "!"
+
+def add(a, b):
+    return a + b
+
+def square(x):
+    return x * x
+
+for name in ["Ada", "Alan", "Grace"]:
+    print(greet(name))
+
+for n in range(5):
+    print(square(n), add(n, n))`},
+  {label:'Your own words', dot:'var(--ink)', text:''},
+];
+
+/* ------------ config + state ------------ */
+const CFG = {d: 32, L: 2, H: 4, T: 24, seed: 42};
+const B = 8, MIN_CHARS = 60, MAX_CHARS = 3000, AUTO_STOP = 1500;
+const MILESTONES = [0, 20, 50, 100, 200, 400, 700, 1000, 1500];
+const LOOP = [
+  {name:'Guess', color:'--violet', text: () => `The model takes ${B} random chunks of your text, ${CFG.T} characters each, and guesses the next character at every position.`},
+  {name:'Score', color:'--coral', text: () => 'Each guess is checked against the real next character. All the misses are averaged into one number: the loss.'},
+  {name:'Blame', color:'--sun', text: () => `Backpropagation runs backwards through the network and works out how much each of its ${S.model ? S.model.nParams.toLocaleString() : ''} weights added to the error.`},
+  {name:'Nudge', color:'--mint', text: () => 'Every weight moves a tiny step in the direction that lowers the loss. Then the loop starts again.'},
+];
+const S = {text:'', chars:[], stoi:new Map(), data:null, train:null, val:null, model:null, trainer:null,
+  running:false, ready:false, step:0, ema:null, emaHist:[], valHist:[], snaps:[], nextSnap:0, sel:-1, hoverNode:-1,
+  gpos:0, lookSel:-1, layer:0, head:'all', lastViz:0};
+const lrFromSlider = v => 3e-4 * Math.pow(100, v / 100);   // 3e-4 … 3e-2, log scale
+
+/* ------------ trainer: Web Worker, with a main-thread fallback (e.g. file://) ------------ */
+function makeTrainer(onMsg){
+  try {
+    const w = new Worker('trainer-worker.js');
+    w.onmessage = e => onMsg(e.data);
+    return {send: m => w.postMessage(m), kill: () => w.terminate()};
+  } catch (e) {
+    let model, train, val, lr, running = false, timer;
+    const flat = () => { const o = new Float32Array(model.nParams); let k = 0; for (const p of model.params){ o.set(p.d, k); k += p.d.length; } return o; };
+    const tick = () => {
+      if (!running) return;
+      const losses = [], t0 = performance.now(); let valLoss = null, gnorms = null;
+      while (performance.now() - t0 < 30){ const r = TinyGPT.trainStep(model, train, {lr, B}); losses.push(r.loss); gnorms = r.gnorms; if (val && model.step % 50 === 0) valLoss = {step: model.step, loss: TinyGPT.evalLoss(model, val, 3)}; }
+      onMsg({type:'tick', step: model.step, losses, valLoss, params: flat(), gnorms});
+      timer = setTimeout(tick, 16);
+    };
+    return {send: m => {
+      if (m.type === 'init'){ clearTimeout(timer); running = false; model = TinyGPT.createModel(m.V, m.cfg); train = m.train; val = m.val; lr = m.lr; setTimeout(() => onMsg({type:'ready', step:0, params: flat()})); }
+      else if (m.type === 'run'){ if (!running){ running = true; tick(); } }
+      else if (m.type === 'pause'){ running = false; clearTimeout(timer); }
+      else if (m.type === 'lr') lr = m.lr;
+    }, kill: () => { running = false; clearTimeout(timer); }};
+  }
+}
+
+function applyParams(flat){ let o = 0; for (const p of S.model.params){ p.d.set(flat.subarray(o, o + p.d.length)); o += p.d.length; } }
+
+function prepare(text, autorun){
+  text = text.slice(0, MAX_CHARS);
+  S.text = text;
+  S.chars = [...new Set([...text])].sort();
+  S.stoi = new Map(S.chars.map((c, i) => [c, i]));
+  S.data = Int32Array.from([...text], c => S.stoi.get(c));
+  const n = S.data.length;
+  if (n >= 400){ const cut = Math.floor(n * 0.9); S.train = S.data.slice(0, cut); S.val = S.data.slice(cut); }
+  else { S.train = S.data; S.val = null; }
+  S.model = TinyGPT.createModel(S.chars.length, CFG);
+  Object.assign(S, {running:false, ready:false, step:0, ema:null, emaHist:[], valHist:[], snaps:[], nextSnap:0, sel:-1, lookSel:-1, continued:false});
+  $('#key-val').style.display = S.val ? '' : 'none';
+  if (!S.trainer) S.trainer = makeTrainer(onTrainerMsg);
+  S.trainer.send({type:'init', V: S.chars.length, cfg: CFG, train: S.train, val: S.val, lr: lrFromSlider(+$('#lr').value)});
+  if (autorun) setRunning(true);
+  newGuessSpot();
+  $('#w-prompt').value = [...text].slice(0, 14).join('').replace(/\n/g, ' ');
+  $('#x-text').value = [...text].filter(c => c !== '\n').slice(0, 9).join('');
+  GROUPS = null; M.pos = null; M.basis = null; M.hover = -1; X.row = -1;
+  $('#w-out').innerHTML = '<span class="empty-hint">Its writing will appear here. Try it before and after training.</span>';
+  $('#sc-params').textContent = short(S.model.nParams);
+  $('#sc-text').textContent = short(n);
+  $('#sc-x').textContent = '×' + short(Math.round(175e9 / S.model.nParams));
+  updateStartBtn(); renderMetrics(); drawChart(); renderFitNote(); renderTimeline(); renderGuess();
+  buildGroups(); renderGrad(null); renderInside(true); renderMap();
+}
+
+function onTrainerMsg(msg){
+  if (msg.type === 'ready'){
+    applyParams(msg.params); S.ready = true; maybeSnapshot(); renderGuess(); renderInside(); renderMap();
+  } else if (msg.type === 'tick'){
+    applyParams(msg.params); S.step = msg.step;
+    for (const l of msg.losses){ S.ema = S.ema == null ? l : 0.96 * S.ema + 0.04 * l; S.emaHist.push(S.ema); }
+    if (msg.valLoss) S.valHist.push(msg.valLoss);
+    maybeSnapshot(); renderMetrics(); drawChart(); renderFitNote();
+    if (msg.gnorms) renderGrad(msg.gnorms);
+    const now = performance.now();
+    if (now - S.lastViz > 500){ S.lastViz = now; renderGuess(); renderInside(); renderMap(); }
+    if (S.step >= AUTO_STOP && S.running && !S.continued){ setRunning(false); $('#snap-note').textContent = 'Finished training. Scroll down and write with it.'; }
+  }
+}
+
+function setRunning(on){
+  S.running = on;
+  if (on && S.step >= AUTO_STOP) S.continued = true;
+  S.trainer.send({type: on ? 'run' : 'pause'});
+  $('#play').innerHTML = on
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
+    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+  $('#play').title = on ? 'Pause' : 'Train';
+  $('#backflow').classList.toggle('on', on);
+  $('#grad').classList.toggle('on', on);
+  $('.studio').classList.toggle('running', on);
+  if (on) S.everStarted = true;
+  if (X.tr) drawFlow();
+}
+
+/* ------------ hero / composer ------------ */
+function updateStartBtn(){
+  const t = $('#text').value, n = [...t].length;
+  const meta = $('#text-meta');
+  if (n < MIN_CHARS){ meta.textContent = `${n} characters · needs at least ${MIN_CHARS}`; meta.classList.add('bad'); }
+  else { meta.textContent = `${Math.min(n, MAX_CHARS).toLocaleString()} characters · ${new Set([...t.slice(0, MAX_CHARS)]).size} different symbols${n > MAX_CHARS ? ` · first ${MAX_CHARS} used` : ''}`; meta.classList.remove('bad'); }
+  $('#start').disabled = n < MIN_CHARS;
+}
+$('#presets').innerHTML = PRESETS.map((p, i) => `<button class="preset${i === 0 ? ' on' : ''}" data-i="${i}"><i style="background:${p.dot}"></i>${p.label}</button>`).join('');
+$('#presets').addEventListener('click', e => {
+  const b = e.target.closest('.preset'); if (!b) return;
+  document.querySelectorAll('.preset').forEach(x => x.classList.toggle('on', x === b));
+  const p = PRESETS[+b.dataset.i];
+  $('#text').value = p.text; updateStartBtn();
+  if (!p.text){ $('#text').placeholder = 'Paste or type anything: a poem, song lyrics you wrote, your notes, some code…'; $('#text').focus(); }
+});
+$('#text').addEventListener('input', () => { updateStartBtn(); document.querySelectorAll('.preset').forEach((x, i) => x.classList.toggle('on', i === PRESETS.length - 1)); });
+$('#start').onclick = () => { prepare($('#text').value, true); $('#studio').scrollIntoView({behavior:'smooth'}); };
+$('#play').onclick = () => { if (!S.model) prepare($('#text').value, true); else setRunning(!S.running); };
+$('#reset').onclick = () => prepare(S.text, false);
+$('#lr').addEventListener('input', e => { const lr = lrFromSlider(+e.target.value); $('#lr-o').textContent = lr.toExponential(0); S.trainer && S.trainer.send({type:'lr', lr}); });
+$('#lr-o').textContent = lrFromSlider(+$('#lr').value).toExponential(0);
+
+/* ------------ loop diagram ------------ */
+(function buildLoop(){
+  const R = 104, at = deg => [150 + R * Math.sin(deg * Math.PI / 180), 150 - R * Math.cos(deg * Math.PI / 180)];
+  $('#loop-arrows').innerHTML = [45, 135, 225, 315].map(a => { const [x, y] = at(a); return `<path class="arrow" d="M-5,-5 L5,0 L-5,5Z" transform="translate(${x},${y}) rotate(${a})"/>`; }).join('');
+  $('#loop-nodes').innerHTML = LOOP.map((n, i) => { const [x, y] = at(i * 90); return `<g class="node" data-i="${i}"><circle cx="${x}" cy="${y}" r="33" style="stroke:var(${n.color})"/><text x="${x}" y="${y}" style="fill:var(${n.color})">${n.name}</text><circle class="ring" cx="${x}" cy="${y}" r="33" style="stroke:var(${n.color})"/></g>`; }).join('');
+  $('#loop-nodes').addEventListener('mouseover', e => { const g = e.target.closest('.node'); if (g){ S.hoverNode = +g.dataset.i; } });
+  $('#loop-nodes').addEventListener('mouseout', () => { S.hoverNode = -1; });
+  $('#loop-nodes').addEventListener('click', e => { const g = e.target.closest('.node'); if (g) S.hoverNode = S.hoverNode === +g.dataset.i ? -1 : +g.dataset.i; });
+  let angle = 0, last = performance.now(), shown = -2;
+  function frame(now){
+    const dt = Math.min(64, now - last); last = now;
+    if (S.running) angle = (angle + dt * 0.3) % 360;
+    const [x, y] = at(angle);
+    $('#orbit').setAttribute('cx', x); $('#orbit').setAttribute('cy', y);
+    [['#orbit2', 7], ['#orbit3', 14]].forEach(([id, lag]) => { const [tx, ty] = at(S.running ? angle - lag : angle); $(id).setAttribute('cx', tx); $(id).setAttribute('cy', ty); });
+    const active = S.running ? Math.floor(((angle + 45) % 360) / 90) : -1;
+    document.querySelectorAll('#loop-nodes .node').forEach((g, i) => {
+      const on = i === active || i === S.hoverNode, c = `var(${LOOP[i].color})`;
+      g.querySelector('circle').style.fill = on ? c : 'var(--paper)';
+      g.querySelector('text').style.fill = on ? '#fff' : c;
+      g.classList.toggle('on', i === active);
+    });
+    const cap = S.hoverNode >= 0 ? S.hoverNode : active;
+    if (cap !== shown){
+      shown = cap;
+      $('#loop-cap').innerHTML = cap >= 0
+        ? `<b style="color:var(${LOOP[cap].color})">${cap + 1}. ${LOOP[cap].name}</b><p>${LOOP[cap].text()}</p>`
+        : `<b>${S.step ? 'Paused' : 'Ready when you are'}</b><p>${S.step ? 'Press play to keep training, or hover over a step.' : 'Press <strong>Start training</strong> above, or the play button. Hover over a step to learn what it does.'}</p>`;
+    }
+    $('#loop-step').textContent = S.step.toLocaleString();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ------------ metrics + chart ------------ */
+function renderMetrics(){
+  if (S.ema == null){ $('#m-loss').textContent = Math.log(S.chars.length || 1).toFixed(2); $('#m-ppl').textContent = S.chars.length; $('#m-ppl-sub').textContent = 'letters it is torn between (pure guessing)'; return; }
+  $('#m-loss').textContent = S.ema.toFixed(2);
+  const ppl = Math.exp(S.ema);
+  $('#m-ppl').textContent = ppl < 10 ? ppl.toFixed(1) : Math.round(ppl);
+  $('#m-ppl-sub').textContent = ppl < 1.3 ? 'letters it is torn between: it is almost certain' : 'letters it is torn between, on average';
+}
+function drawChart(){
+  const cv = $('#chart'), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== W * dpr || cv.height !== H * dpr){ cv.width = W * dpr; cv.height = H * dpr; }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const pad = {l: 34, r: 10, t: 12, b: 26}, w = W - pad.l - pad.r, h = H - pad.t - pad.b;
+  const lnV = Math.log(Math.max(2, S.chars.length));
+  const ymax = Math.ceil(Math.max(lnV * 1.1, ...S.emaHist.slice(0, 5), 1));
+  const xmax = Math.max(200, Math.ceil(S.step * 1.08 / 100) * 100);
+  const X = s => pad.l + s / xmax * w, Y = v => pad.t + (1 - v / ymax) * h;
+  c.font = `11px ${css('--mono')}`; c.fillStyle = css('--muted'); c.strokeStyle = css('--line'); c.lineWidth = 1;
+  for (let v = 0; v <= ymax; v++){ c.beginPath(); c.moveTo(pad.l, Y(v)); c.lineTo(W - pad.r, Y(v)); c.stroke(); c.textAlign = 'right'; c.fillText(v, pad.l - 8, Y(v) + 4); }
+  const xs = xmax / 4; c.textAlign = 'center';
+  for (let s = 0; s <= xmax; s += xs) c.fillText(Math.round(s).toLocaleString(), X(s), H - 6);
+  c.setLineDash([5, 5]); c.strokeStyle = css('--muted'); c.beginPath(); c.moveTo(pad.l, Y(lnV)); c.lineTo(W - pad.r, Y(lnV)); c.stroke(); c.setLineDash([]);
+  c.textAlign = 'right'; c.fillText('random guessing', W - pad.r - 4, Y(lnV) - 7);
+  const n = S.emaHist.length;
+  if (n){
+    const every = Math.max(1, Math.floor(n / 600)), violet = css('--violet');
+    const g = c.createLinearGradient(0, pad.t, 0, pad.t + h); g.addColorStop(0, 'rgba(107,78,255,.18)'); g.addColorStop(1, 'rgba(107,78,255,0)');
+    c.beginPath(); c.moveTo(X(1), Y(S.emaHist[0]));
+    for (let i = 0; i < n; i += every) c.lineTo(X(i + 1), Y(S.emaHist[i]));
+    c.lineTo(X(n), Y(S.emaHist[n - 1]));
+    c.lineWidth = 2.5; c.strokeStyle = violet; c.lineJoin = 'round'; c.stroke();
+    c.lineTo(X(n), Y(0)); c.lineTo(X(1), Y(0)); c.closePath(); c.fillStyle = g; c.fill();
+    if (S.valHist.length){
+      c.beginPath(); S.valHist.forEach((p, i) => i ? c.lineTo(X(p.step), Y(p.loss)) : c.moveTo(X(p.step), Y(p.loss)));
+      c.strokeStyle = css('--coral'); c.lineWidth = 2; c.stroke();
+    }
+    c.beginPath(); c.arc(X(n), Y(S.emaHist[n - 1]), 9, 0, 7); c.fillStyle = 'rgba(107,78,255,.18)'; c.fill();
+    c.beginPath(); c.arc(X(n), Y(S.emaHist[n - 1]), 4.5, 0, 7); c.fillStyle = violet; c.fill();
+  } else {
+    c.fillStyle = css('--muted'); c.textAlign = 'center'; c.font = `14px ${css('--sans')}`;
+    c.fillText('The loss curve will draw itself here', pad.l + w / 2, pad.t + h * 0.62);
+  }
+}
+addEventListener('resize', drawChart);
+function renderFitNote(){
+  const v = S.valHist, el = $('#fit-note');
+  const best = v.length ? Math.min(...v.map(p => p.loss)) : 0, last = v.length ? v[v.length - 1].loss : 0;
+  const on = v.length >= 3 && last > best + 0.3;
+  el.classList.toggle('on', on);
+  if (on) el.innerHTML = '<b>See the red line climbing?</b> The model is memorising your exact lines instead of learning patterns that carry over to new text. That is called <b>overfitting</b>. Real LLMs avoid it by training on vastly more text than they could ever memorise.';
+}
+
+/* ------------ snapshots: what it writes over time ------------ */
+function sampleFrom(probs, rng){ let r = rng(), k = 0; for (; k < probs.length - 1; k++){ r -= probs[k]; if (r < 0) break; } return k; }
+function phase(loss){
+  const lnV = Math.log(S.chars.length);
+  if (loss == null || loss > lnV * 0.85) return 'Random letters. It knows nothing yet.';
+  if (loss > 2.6) return 'It has worked out which letters are common.';
+  if (loss > 1.9) return 'Spaces, and the first short words.';
+  if (loss > 1.2) return 'Real words, in roughly the right order.';
+  if (loss > 0.45) return 'Whole phrases from your text are coming back.';
+  return 'It has nearly memorised your text. Notice the red line drifting up? That is overfitting.';
+}
+function maybeSnapshot(){
+  if (S.nextSnap >= MILESTONES.length || S.step < MILESTONES[S.nextSnap]) return;
+  while (S.nextSnap < MILESTONES.length && S.step >= MILESTONES[S.nextSnap]) S.nextSnap++;
+  const rng = TinyGPT.mulberry32(11), ctx = [S.data[0]];
+  for (let i = 0; i < 170; i++) ctx.push(sampleFrom(TinyGPT.predict(S.model, ctx, 0.7).probs, rng));
+  S.snaps.push({step: S.step, text: ctx.map(i => S.chars[i]).join(''), loss: S.ema});
+  renderTimeline();
+  if (S.sel === -1) showSnap(S.snaps.length - 1, true);
+}
+let typer = null;
+function showSnap(i, animate){
+  const s = S.snaps[i]; if (!s) return;
+  $('#snap-note').textContent = `Step ${s.step.toLocaleString()}: ${phase(s.loss)}`;
+  const el = $('#writes'); clearInterval(typer);
+  if (!animate){ el.textContent = s.text; return; }
+  let k = 0; el.innerHTML = '<span class="caret"></span>';
+  typer = setInterval(() => { k += 3; el.innerHTML = esc(s.text.slice(0, k)) + '<span class="caret"></span>'; if (k >= s.text.length){ clearInterval(typer); el.textContent = s.text; } }, 16);
+}
+function renderTimeline(){
+  const cur = S.sel === -1 ? S.snaps.length - 1 : S.sel;
+  $('#timeline').innerHTML = MILESTONES.map((m, i) => {
+    const s = S.snaps[i];
+    return `<button class="snap${s && i === cur ? ' on' : ''}" data-i="${i}" ${s ? '' : 'disabled'}>step ${s ? s.step.toLocaleString() : m.toLocaleString()}</button>`;
+  }).join('') + (S.sel !== -1 ? '<button class="snap" data-i="live">● follow live</button>' : '');
+  if (!S.snaps.length){ $('#writes').innerHTML = '<span class="empty-hint">Samples of its writing will appear here as it trains.</span>'; $('#snap-note').textContent = ''; }
+}
+$('#timeline').addEventListener('click', e => {
+  const b = e.target.closest('.snap'); if (!b || b.disabled) return;
+  if (b.dataset.i === 'live'){ S.sel = -1; showSnap(S.snaps.length - 1, false); }
+  else { const i = +b.dataset.i; S.sel = i === S.snaps.length - 1 ? -1 : i; showSnap(i, true); }
+  renderTimeline();
+});
+
+/* ------------ 02: one guess ------------ */
+function newGuessSpot(){ const T = CFG.T, n = S.data.length; S.gpos = T - 1 + Math.floor(Math.random() * Math.max(1, n - T - 1)); }
+function renderGuess(){
+  if (!S.model) return;
+  const T = CFG.T, ctx = Array.from(S.data.slice(S.gpos - T + 1, S.gpos + 1)), tgt = S.data[S.gpos + 1];
+  $('#g-ctx').innerHTML = ctx.map((i, k) => { const ch = S.chars[i], ws = /\s/.test(ch); return `<div class="cbox${ws ? ' ws' : ''}" style="--i:${k}"><span class="c">${esc(vis(ch))}</span><small>${i}</small></div>`; }).join('') +
+    '<div class="cbox q">?</div>';
+  if ($('#g-ids').checked) document.querySelectorAll('#g-ctx .cbox:not(.q) .c').forEach((el, k) => el.textContent = ctx[k]);
+  const {probs} = TinyGPT.predict(S.model, ctx, 1);
+  const top = Array.from(probs).map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]).slice(0, 6);
+  if (!top.some(([, i]) => i === tgt)) top[5] = [probs[tgt], tgt];
+  $('#g-bars').innerHTML = top.map(([p, i]) => { const ok = i === tgt ? ' ok' : ''; return `<div class="ptile${ok}">${esc(vis(S.chars[i]))}</div><div class="pbar"><span class="${ok}" style="width:${(p * 100).toFixed(1)}%"></span></div><div class="pct">${(p * 100).toFixed(1)}%</div>`; }).join('');
+  const p = probs[tgt], rank = Array.from(probs).filter(x => x > p).length + 1;
+  $('#g-verdict').innerHTML = `<div class="label" style="margin-bottom:10px">The real answer</div><div class="ans">${esc(vis(S.chars[tgt]))}</div>
+    <div class="big">${(p * 100).toFixed(1)}%</div><p>is how likely the model thinks it is${rank === 1 ? ', its top pick' : `, its #${rank} pick`}.</p>
+    <p style="margin-top:12px">Loss for this one quiz = −ln(${p.toFixed(3)}) = <b>${(-Math.log(p)).toFixed(2)}</b>. A perfect guess would score 0.</p>`;
+}
+$('#g-next').onclick = () => { newGuessSpot(); renderGuess(); };
+$('#g-ids').onchange = e => { $('#g-ctx').classList.toggle('show-ids', e.target.checked); renderGuess(); };
+
+/* ------------ 03: write ------------ */
+const tip = $('#tip');
+let writing = 0;
+$('#w-temp').addEventListener('input', e => $('#w-temp-o').textContent = (+e.target.value).toFixed(2) + (e.target.value < 0.4 ? ' safe' : e.target.value > 1.1 ? ' wild' : ''));
+$('#w-temp').dispatchEvent(new Event('input'));
+$('#w-go').onclick = async () => {
+  const run = ++writing, temp = +$('#w-temp').value;
+  let prompt = [...$('#w-prompt').value].filter(c => S.stoi.has(c));
+  if (!prompt.length) prompt = [S.chars[S.data[0]]];
+  const ctx = prompt.map(c => S.stoi.get(c)), out = $('#w-out'), meta = [];
+  out.innerHTML = `<span class="pr">${esc(prompt.join(''))}</span>`;
+  out.meta = meta;
+  for (let i = 0; i < 180 && run === writing; i++){
+    const {probs} = TinyGPT.predict(S.model, ctx, temp), k = sampleFrom(probs, Math.random);
+    const alts = Array.from(probs).map((p, j) => [p, j]).sort((a, b) => b[0] - a[0]).slice(0, 4);
+    meta.push({k, p: probs[k], alts}); ctx.push(k);
+    const span = document.createElement('span');
+    span.className = 'gc'; span.dataset.m = meta.length - 1; span.textContent = S.chars[k];
+    const unsure = Math.round(Math.min(1, (1 - probs[k]) * 1.15) * 72);
+    if (unsure > 8) span.style.background = `color-mix(in srgb, var(--sun) ${unsure}%, transparent)`;
+    out.appendChild(span);
+    if (i % 2) await new Promise(r => setTimeout(r, 16));
+  }
+};
+$('#w-out').addEventListener('mousemove', e => {
+  const s = e.target.closest('.gc'); if (!s){ tip.style.opacity = 0; return; }
+  const m = $('#w-out').meta[+s.dataset.m];
+  tip.innerHTML = `Picked <b>“${esc(vis(S.chars[m.k]))}”</b> with ${(m.p * 100).toFixed(0)}% odds.<br>Other options: ${m.alts.filter(a => a[1] !== m.k).slice(0, 3).map(([p, j]) => `<b>${esc(vis(S.chars[j]))}</b> ${(p * 100).toFixed(0)}%`).join(' · ')}`;
+  tip.style.left = Math.min(innerWidth - 270, e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 18) + 'px'; tip.style.opacity = 1;
+});
+$('#w-out').addEventListener('mouseleave', () => tip.style.opacity = 0);
+
+/* ------------ 02: inside the model (a live, Transformer-Explainer-style flow) ------------ */
+const X = {row: -1, key: -1, block: 0, head: 0, stage: 3, tour: false, timer: null, tr: null, temp: 1};
+const RH = 24, RG = 4, PITCH = RH + RG, NB = '#f1ede6', CW = 2.25, CWQ = 1.75, CWM = 1;
+const STAGES = [
+  {name: 'Tokens', sub: t => `${t.T} IDs`},
+  {name: 'Embedding', sub: t => `${t.T} × ${t.d}`},
+  {name: 'Query · Key · Value', sub: t => `Q | K | V · ${t.H} heads`},
+  {name: 'Masked attention', sub: t => `head ${X.head + 1} · ${t.T} × ${t.T}`},
+  {name: 'Mix + shortcut', sub: t => `${t.T} × ${t.d}`},
+  {name: 'MLP · GELU', sub: t => `${t.T} × ${4 * t.d}`},
+  {name: 'Block output', sub: t => `${t.T} × ${t.d}`},
+  {name: 'Next letter', sub: t => `odds over ${t.V}`},
+];
+
+function insideIds(){
+  const ids = [...$('#x-text').value].filter(c => S.stoi.has(c)).slice(-12).map(c => S.stoi.get(c));
+  return ids.length >= 2 ? ids : Array.from(S.data.slice(0, 8));
+}
+function setupCanvas(cv, w, h){
+  const dpr = window.devicePixelRatio || 1, W = Math.round(w * dpr), H = Math.round(h * dpr);
+  cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h); return c;
+}
+const maxAbs = a => { let m = 1e-6; for (let i = 0; i < a.length; i++){ const v = Math.abs(a[i]); if (v > m) m = v; } return m; };
+const cellColor = v => { const a = (0.07 + 0.93 * Math.min(1, Math.abs(v))).toFixed(3); return v >= 0 ? `rgba(107,78,255,${a})` : `rgba(255,106,85,${a})`; };
+function strips(c, data, rows, n, cw, x0, mx, group){
+  for (let i = 0; i < rows; i++){
+    const y = i * PITCH;
+    c.fillStyle = NB; c.fillRect(x0, y, n * cw, RH);
+    for (let j = 0; j < n; j++){ c.fillStyle = cellColor(data[i * n + j] / mx); c.fillRect(x0 + j * cw, y, cw + 0.35, RH); }
+    if (group){ c.fillStyle = '#fff'; for (let g = group; g < n; g += group) c.fillRect(x0 + g * cw - 0.75, y, 1.5, RH); }
+  }
+}
+function frameRow(c, i, x0, w){ c.strokeStyle = '#191530'; c.lineWidth = 1.5; c.strokeRect(x0 + 0.75, i * PITCH + 0.75, w - 1.5, RH - 1.5); }
+function softmaxRow(logits, i, V, temp){
+  const p = new Float64Array(V); let mx = -Infinity, s = 0;
+  for (let j = 0; j < V; j++) mx = Math.max(mx, logits[i * V + j] / temp);
+  for (let j = 0; j < V; j++){ p[j] = Math.exp(logits[i * V + j] / temp - mx); s += p[j]; }
+  for (let j = 0; j < V; j++) p[j] /= s;
+  return p;
+}
+const curRow = () => X.row < 0 || X.row >= X.tr.T ? X.tr.T - 1 : X.row;
+
+function renderInside(rebuild){
+  if (!S.model) return;
+  const T0 = X.tr ? X.tr.T : -1;
+  X.tr = TinyGPT.trace(S.model, insideIds());
+  if (rebuild || X.tr.T !== T0 || !$('#fx-embed')){ buildFlow(); X.key = -1; setStage(X.stage, false); }
+  else drawFlow();
+}
+
+function buildFlow(){
+  const t = X.tr, L = CFG.L;
+  const col = (s, inner) => `<div class="fcol" data-s="${s}"><button class="fhead" data-s="${s}"><span class="n">${s + 1}</span><b>${STAGES[s].name}</b><span class="sub" id="fsub-${s}"></span></button><div class="fbody" data-s="${s}">${inner}</div></div>`;
+  const sparks = REDUCED ? '' : [0, 1].map(k => `<circle class="spark s${k}" r="${k ? 4 : 5}"><animateMotion dur="3s" begin="${k ? '-1.5s' : '0s'}" repeatCount="indefinite" calcMode="paced"><mpath href="#fl-run" xlink:href="#fl-run"/></animateMotion></circle>`).join('');
+  X.sparkSeg = -1;
+  $('#flow').innerHTML = `<svg class="flow-links" id="flow-links" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="fl-static"></g><path id="fl-run" fill="none" stroke="none" d="M0,0"/>${sparks}</svg>` +
+    col(0, '<div id="fx-tokens"></div>') + col(1, '<canvas id="fx-embed"></canvas>') +
+    `<div class="block-frame"><div class="block-tag"><span>Transformer block${Array.from({length: L}, (_, b) => `<button data-b="${b}">${b + 1}</button>`).join('')}<em>of ${L}</em></span>` +
+    `<span>attention head${Array.from({length: t.H}, (_, h) => `<button data-h="${h}">${h + 1}</button>`).join('')}</span></div>` +
+    col(2, '<canvas id="fx-qkv"></canvas>') + col(3, '<canvas id="fx-attn"></canvas>') + col(4, '<canvas id="fx-mix"></canvas>') +
+    col(5, '<canvas id="fx-mlp"></canvas>') + col(6, '<canvas id="fx-out"></canvas>') + '</div>' +
+    col(7, '<div id="fx-next"></div>');
+}
+
+function drawFlow(){
+  const t = X.tr; if (!t || !$('#fx-embed')) return;
+  const T = t.T, d = t.d, hd = t.hd, Ly = t.layers[X.block], row = curRow(), h = T * PITCH - RG;
+  const A = (i, j) => Ly.att[(X.head * T + i) * T + j];
+  $('#fx-tokens').innerHTML = t.ids.map((id, i) => {
+    const w = i <= row ? A(row, i) : 0;
+    return `<div class="trow${i === row ? ' hl' : ''}"><span class="tchip${i > row ? ' fut' : ''}" style="background:color-mix(in srgb,var(--coral) ${Math.round(w * 90)}%,var(--paper))">${esc(vis(S.chars[id]))}</span><span class="tid">${id}</span></div>`;
+  }).join('');
+  let c = setupCanvas($('#fx-embed'), d * CW, h); strips(c, t.x0, T, d, CW, 0, maxAbs(t.x0)); frameRow(c, row, 0, d * CW);
+  const bw = d * CWQ, g = 8;
+  c = setupCanvas($('#fx-qkv'), 3 * bw + 2 * g, h);
+  [Ly.q, Ly.k, Ly.v].forEach((a, b) => { strips(c, a, T, d, CWQ, b * (bw + g), maxAbs(a), hd); frameRow(c, row, b * (bw + g), bw); });
+  c = setupCanvas($('#fx-attn'), h, h);
+  for (let i = 0; i < T; i++) for (let j = 0; j < T; j++){
+    const x = j * PITCH, y = i * PITCH;
+    if (j > i){ c.fillStyle = NB; c.fillRect(x, y, RH, RH); c.strokeStyle = '#e1dacd'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 5, y + RH - 5); c.lineTo(x + RH - 5, y + 5); c.stroke(); }
+    else { c.fillStyle = `rgba(107,78,255,${(0.06 + 0.94 * A(i, j)).toFixed(3)})`; c.fillRect(x, y, RH, RH); }
+  }
+  frameRow(c, row, 0, h);
+  if (X.key >= 0 && X.key <= row){ c.strokeStyle = '#ff6a55'; c.lineWidth = 2.5; c.strokeRect(X.key * PITCH + 1.25, row * PITCH + 1.25, RH - 2.5, RH - 2.5); }
+  for (const [id, a] of [['fx-mix', Ly.x1], ['fx-out', Ly.x2]]){ c = setupCanvas($('#' + id), d * CW, h); strips(c, a, T, d, CW, 0, maxAbs(a)); frameRow(c, row, 0, d * CW); }
+  c = setupCanvas($('#fx-mlp'), 4 * d * CWM, h); strips(c, Ly.hpost, T, 4 * d, CWM, 0, maxAbs(Ly.hpost)); frameRow(c, row, 0, 4 * d * CWM);
+  $('#fx-next').innerHTML = Array.from({length: T}, (_, i) => {
+    const p = softmaxRow(t.logits, i, t.V, 1); let k = 0;
+    for (let j = 1; j < t.V; j++) if (p[j] > p[k]) k = j;
+    const real = i < T - 1 ? t.ids[i + 1] : -1, cls = real < 0 ? 'pred' : k === real ? 'ok' : 'miss';
+    return `<div class="trow${i === row ? ' hl' : ''}"><span class="tchip ${cls}">${esc(vis(S.chars[k]))}</span><span class="tid">${Math.round(p[k] * 100)}%</span></div>`;
+  }).join('');
+  STAGES.forEach((s, k) => { const el = $('#fsub-' + k); if (el) el.textContent = s.sub(t); });
+  document.querySelectorAll('.block-tag [data-b]').forEach(b => b.classList.toggle('on', +b.dataset.b === X.block));
+  document.querySelectorAll('.block-tag [data-h]').forEach(b => b.classList.toggle('on', +b.dataset.h === X.head));
+  drawLinks(row, A);
+  renderExplain();
+  const lb = $('#x-live');
+  lb.textContent = S.running ? `● live · step ${S.step.toLocaleString()}` : `step ${S.step.toLocaleString()}${S.step ? ' · paused' : ' · untrained'}`;
+  lb.classList.toggle('idle', !S.running);
+}
+
+function drawLinks(row, A){
+  const flow = $('#flow'), svg = $('#flow-links'), fr = flow.getBoundingClientRect();
+  svg.setAttribute('width', flow.scrollWidth); svg.setAttribute('height', flow.scrollHeight);
+  const B = [...flow.querySelectorAll('.fbody')].map(b => b.getBoundingClientRect()), T = X.tr.T;
+  const y = (r, i) => r.top - fr.top + i * PITCH + RH / 2, f = v => v.toFixed(1);
+  const curve = (x1, y1, x2, y2) => { const m = (x1 + x2) / 2; return `C${f(m)},${f(y1)} ${f(m)},${f(y2)} ${f(x2)},${f(y2)}`; };
+  // keep the marching dashes in phase across redraws
+  const phase = `animation-delay:-${((performance.now() % 900) / 1000).toFixed(2)}s`;
+  const last = X.tour ? X.stage : B.length - 1;
+  let out = '', run = `M${f(B[0].left - fr.left)},${f(y(B[0], row))} L${f(B[0].right - fr.left)},${f(y(B[0], row))}`;
+  for (let s = 0; s < B.length - 1 && s < last; s++){
+    const x1 = B[s].right - fr.left + 3, x2 = B[s + 1].left - fr.left - 3;
+    for (let i = 0; i < T; i++){
+      const hot = i === row;
+      out += `<path class="${hot ? 'hot' : ''}"${hot ? ` style="${phase}"` : ''} d="M${f(x1)},${f(y(B[s], i))} ${curve(x1, y(B[s], i), x2, y(B[s + 1], i))}"/>`;
+    }
+    // the travelling sparks follow the selected row straight through each stage
+    run += ` L${f(x1)},${f(y(B[s], row))} ${curve(x1, y(B[s], row), x2, y(B[s + 1], row))} L${f(B[s + 1].right - fr.left)},${f(y(B[s + 1], row))}`;
+  }
+  if (last >= 3){
+    // the keys of earlier tokens feeding the selected query, thicker = more attention
+    const x1 = B[2].right - fr.left + 3, x2 = B[3].left - fr.left - 3;
+    let mx = 1e-6; for (let j = 0; j <= row; j++) mx = Math.max(mx, A(row, j));
+    for (let j = 0; j <= row; j++){
+      const w = A(row, j) / mx;
+      out += `<path class="att" style="stroke-opacity:${(0.12 + 0.88 * w).toFixed(2)};stroke-width:${(0.8 + 3.2 * w).toFixed(1)};${phase}" d="M${f(x1)},${f(y(B[2], j))} ${curve(x1, y(B[2], j), x2, y(B[3], row))}"/>`;
+    }
+  }
+  $('#fl-static').innerHTML = out;
+  const rp = $('#fl-run'); if (rp.getAttribute('d') !== run) rp.setAttribute('d', run);
+  if (X.sparkSeg !== last){
+    X.sparkSeg = last;
+    svg.querySelectorAll('animateMotion').forEach(a => a.setAttribute('dur', (1.2 + 0.5 * Math.max(1, last)).toFixed(1) + 's'));
+  }
+}
+
+const geluF = x => 0.5 * x * (1 + Math.tanh(0.7978845608 * (x + 0.044715 * x * x * x)));
+function drawGelu(cv, pre){
+  const W = Math.min(360, cv.parentElement.clientWidth || 360), H = 180, c = setupCanvas(cv, W, H);
+  const x0 = -4, x1 = 4, y0 = -0.6, y1 = 4.2, px = x => (x - x0) / (x1 - x0) * W, py = y => H - 8 - (y - y0) / (y1 - y0) * (H - 16);
+  c.strokeStyle = '#e4ded3'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(0, py(0)); c.lineTo(W, py(0)); c.moveTo(px(0), 0); c.lineTo(px(0), H); c.stroke();
+  c.strokeStyle = '#191530'; c.lineWidth = 2; c.beginPath();
+  for (let x = x0; x <= x1; x += 0.05) x === x0 ? c.moveTo(px(x), py(geluF(x))) : c.lineTo(px(x), py(geluF(x)));
+  c.stroke();
+  for (const v of pre){
+    const x = Math.max(x0, Math.min(x1, v));
+    c.fillStyle = v > 0 ? 'rgba(107,78,255,.7)' : 'rgba(255,106,85,.6)';
+    c.beginPath(); c.arc(px(x), py(geluF(x)), 3.4, 0, 7); c.fill();
+  }
+  c.fillStyle = '#8a8699'; c.font = '11px ' + css('--mono'); c.fillText('GELU(x)', px(0) + 6, 14); c.textAlign = 'right'; c.fillText('x →', W - 4, py(0) - 6);
+}
+
+function nextBars(row){
+  const t = X.tr, p = softmaxRow(t.logits, row, t.V, X.temp), real = row < t.T - 1 ? t.ids[row + 1] : -1;
+  return Array.from(p).map((v, j) => [v, j]).sort((a, b) => b[0] - a[0]).slice(0, 7).map(([v, j]) =>
+    `<div class="ptile${j === real ? ' ok' : ''}">${esc(vis(S.chars[j]))}</div><div class="pbar"><span class="${j === real ? 'ok' : ''}" style="width:${(v * 100).toFixed(1)}%"></span></div><div class="pct">${(v * 100).toFixed(1)}%</div>`).join('');
+}
+
+function renderExplain(){
+  const t = X.tr; if (!t) return;
+  const row = curRow();
+  if (X.stage === 7 && document.activeElement && document.activeElement.id === 'x-temp'){ $('#x-pb').innerHTML = nextBars(row); return; }
+  const T = t.T, d = t.d, H = t.H, hd = t.hd, L = CFG.L, Ly = t.layers[X.block];
+  const cq = `“${esc(vis(S.chars[t.ids[row]]))}”`, prefix = t.ids.slice(0, row + 1).map(i => S.chars[i]).join('');
+  const prevOut = X.block ? t.layers[X.block - 1].x2 : t.x0;
+  const jobs = [];
+  const vec = (label, data, n, group) => { jobs.push([data, n, group]); return `<div class="lab">${label}</div><canvas class="vec" data-j="${jobs.length - 1}"></canvas>`; };
+  const at = (a, n) => a.subarray(row * n, row * n + n);
+  const plus = '<div class="eq">+</div>', eq = '<div class="eq">=</div>';
+  let title = '', body = '', shape = '', viz = '';
+  if (X.stage === 0){
+    title = 'Tokenization';
+    body = `Your text is cut into tokens. Here each character is one token, and each gets an ID from a vocabulary of <b>${t.V}</b> symbols found in your training text. Models like GPT use byte-pair encoding (BPE) instead: about 50,000 sub-word pieces such as “ing” or “ the”.`;
+    shape = `“${esc(t.ids.map(i => S.chars[i]).join(''))}” → [${t.ids.join(', ')}]`;
+    viz = `<div class="lab">The whole vocabulary · ${cq} is ID ${t.ids[row]}</div><div class="vocab">${S.chars.map((c, i) => `<span class="${i === t.ids[row] ? 'on' : ''}" style="--i:${i}">${esc(vis(c))}<small>${i}</small></span>`).join('')}</div>`;
+  } else if (X.stage === 1){
+    title = 'Embeddings';
+    body = `Each ID picks one row from a learned table of ${t.V} × ${d} numbers: the <b>token embedding</b>. A second table adds a <b>position embedding</b>, so ${cq} at position ${row} looks different from ${cq} anywhere else. Purple squares are positive numbers, red ones negative.`;
+    shape = `token_emb[${t.ids[row]}] + pos_emb[${row}] → ${d} numbers`;
+    viz = vec(`Token embedding of ${cq}`, at(t.tok, d), d) + plus + vec(`Position embedding #${row}`, at(t.pos, d), d) + eq + vec('What the transformer reads', at(t.x0, d), d);
+  } else if (X.stage === 2){
+    const st = a => { let m = 0; for (const v of a) m += v; m /= a.length; let s = 0; for (const v of a) s += (v - m) ** 2; return [m, Math.sqrt(s / a.length)]; };
+    const [m0, s0] = st(at(prevOut, d)), [m1, s1] = st(at(Ly.ln1, d));
+    title = 'Query, Key, Value';
+    body = `First a <b>LayerNorm</b> rescales the vector (mean ${m0.toFixed(2)} → ${m1.toFixed(2)}, spread ${s0.toFixed(2)} → ${s1.toFixed(2)}) to keep training stable. Then one matrix multiply turns every token into three vectors: a <b>query</b> (what am I looking for?), a <b>key</b> (what do I offer?) and a <b>value</b> (what will I pass on?). Each is split into ${H} heads of ${hd} numbers, marked by the white gaps.`;
+    shape = `LayerNorm(x) · W_qkv [${d} × ${3 * d}] → q, k, v`;
+    viz = vec(`Query of ${cq}`, at(Ly.q, d), d, hd) + vec(`Key of ${cq}`, at(Ly.k, d), d, hd) + vec(`Value of ${cq}`, at(Ly.v, d), d, hd);
+  } else if (X.stage === 3){
+    const r = [];
+    for (let j = 0; j <= row; j++) r.push([j, Ly.scores[(X.head * T + row) * T + j], Ly.att[(X.head * T + row) * T + j]]);
+    title = 'Masked multi-head attention';
+    body = `Head ${X.head + 1} compares the query of ${cq} with the key of every token up to it: <b>score = q · k ÷ √${hd}</b>. Later tokens are masked to −∞, so the model can never peek at the answer. Softmax turns the scores into weights that add up to 100%. The other ${H - 1} heads do the same with their own slices, so each can look for something different. Try the head buttons above the block.`;
+    shape = `softmax(q · kᵀ ÷ √${hd} + causal mask)`;
+    viz = `<div class="lab">Head ${X.head + 1}: where ${cq} looks</div><div class="attn-table"><span class="h">token</span><span class="h" style="text-align:right">score</span><span class="h">weight</span><span></span>` +
+      r.map(([j, s, w]) => `<span class="tchip${j === X.key ? ' key' : ''}">${esc(vis(S.chars[t.ids[j]]))}</span><span class="sc">${s.toFixed(2)}</span><div class="pbar"><span style="width:${(w * 100).toFixed(1)}%"></span></div><span class="pct">${(w * 100).toFixed(0)}%</span>`).join('') +
+      `</div>${row < T - 1 ? `<p class="concept">${T - 1 - row} later token${T - 1 - row > 1 ? 's are' : ' is'} masked (−∞ → 0%).</p>` : ''}`;
+  } else if (X.stage === 4){
+    title = 'Weighted mix + shortcut';
+    body = `Each head blends the <b>value</b> vectors using its attention weights. The ${H} heads are joined back together and pass through one more matrix (W_o). Then the result is <b>added</b> to the vector that came in. This shortcut (a residual connection) lets information and gradients flow straight through, which is what makes deep stacks trainable.`;
+    shape = `x + W_o · [head₁ … head${H}]`;
+    viz = vec('Coming in', at(prevOut, d), d) + plus + vec('Attention output', at(Ly.proj, d), d) + eq + vec('After the shortcut', at(Ly.x1, d), d);
+  } else if (X.stage === 5){
+    const pre = at(Ly.hpre, 4 * d), fire = Array.from(pre).filter(v => v > 0).length;
+    jobs.push(['gelu', pre]);
+    title = 'Feed-forward network (MLP)';
+    body = `Next, each token is processed on its own. After another LayerNorm, its ${d} numbers are expanded to ${4 * d}, passed through <b>GELU</b> (a smooth “keep positives, squash negatives” switch) and projected back to ${d}. Right now <b>${fire} of ${4 * d}</b> neurons fire for ${cq}. About two thirds of each block's weights live here.`;
+    shape = `GELU(x · W₁ + b₁) · W₂ + b₂ : ${d} → ${4 * d} → ${d}`;
+    viz = `<div class="lab">Each dot is one of ${cq}'s ${4 * d} neurons on the GELU curve</div><canvas class="gelu" data-j="${jobs.length - 1}"></canvas>`;
+  } else if (X.stage === 6){
+    title = 'Block output';
+    body = `The MLP's result is added back as well (a second shortcut). That completes block ${X.block + 1} of ${L}. ${X.block < L - 1 ? `This output becomes the input to block ${X.block + 2}, which repeats every step with its own weights. Switch blocks above to compare them.` : 'Next come a final LayerNorm and the output head.'} Your model stacks ${L} blocks. GPT-2 small stacks 12, and GPT-3 stacks 96.`;
+    shape = `x₁ + MLP(x₁) → ${d} numbers`;
+    viz = vec('After attention', at(Ly.x1, d), d) + plus + vec('MLP output', at(Ly.mlp, d), d) + eq + vec(`Block ${X.block + 1} output`, at(Ly.x2, d), d);
+  } else {
+    title = 'Next-letter probabilities';
+    body = `A final LayerNorm, then a ${d} × ${t.V} matrix gives every symbol a score (a <b>logit</b>). Softmax turns the scores into odds. <b>Every position predicts its own next letter</b>, so this one input holds ${T - 1} training examples at once. In the flow, green means it predicted the real next letter.`;
+    shape = `softmax(LayerNorm(x) · W_out ÷ temperature)`;
+    viz = `<div class="lab">After “${esc(prefix.slice(-14).replace(/\n/g, '↵'))}” comes…</div><div class="pbars" id="x-pb">${nextBars(row)}</div>` +
+      `<label class="temp" style="margin-top:16px">Temperature <input type="range" id="x-temp" min="0.2" max="2" step="0.05" value="${X.temp}"><output id="x-temp-o">${X.temp.toFixed(2)}</output></label>`;
+  }
+  $('#x-explain').innerHTML = `<div><span class="kicker">Step ${X.stage + 1} of 8${X.stage >= 2 && X.stage <= 6 ? ` · block ${X.block + 1}` : ''}</span><h3>${title}</h3><p>${body}</p><code class="shape">${shape}</code></div><div class="ex-viz">${viz}</div>`;
+  const vw = Math.min(330, $('#x-explain .ex-viz').clientWidth || 330);
+  document.querySelectorAll('#x-explain canvas.vec').forEach(cv => {
+    const [data, n, group] = jobs[+cv.dataset.j], cw = vw / n;
+    strips(setupCanvas(cv, n * cw, RH), data, 1, n, cw, 0, maxAbs(data), group);
+  });
+  const gc = $('#x-explain canvas.gelu'); if (gc) drawGelu(gc, jobs[+gc.dataset.j][1]);
+  const ts = $('#x-temp');
+  if (ts) ts.oninput = e => { X.temp = +e.target.value; $('#x-temp-o').textContent = X.temp.toFixed(2); $('#x-pb').innerHTML = nextBars(curRow()); };
+}
+
+function setStage(s, pop){
+  X.stage = Math.max(0, Math.min(7, s));
+  document.querySelectorAll('#flow .fcol').forEach(c => {
+    const k = +c.dataset.s;
+    c.classList.toggle('on', k === X.stage);
+    c.classList.toggle('dim', X.tour && k > X.stage);
+    c.classList.toggle('passed', X.tour && k < X.stage);
+    if (pop && k === X.stage){ c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+  });
+  if (pop){
+    const col = document.querySelector(`#flow .fcol[data-s="${X.stage}"]`), sc = $('#flow-scroll');
+    if (col){ const cr = col.getBoundingClientRect(), sr = sc.getBoundingClientRect(); sc.scrollTo({left: sc.scrollLeft + cr.left - sr.left - sr.width / 2 + cr.width / 2, behavior: 'smooth'}); }
+    setTimeout(drawFlow, 600);
+  }
+  drawFlow(); renderTourNav();
+  if (pop){ const ex = $('#x-explain'); ex.classList.remove('fresh'); void ex.offsetWidth; ex.classList.add('fresh'); clearTimeout(X.freshT); X.freshT = setTimeout(() => ex.classList.remove('fresh'), 1000); }
+}
+function renderTourNav(){
+  $('#tour-nav').innerHTML = `<button class="ghost" data-t="prev" ${X.stage === 0 ? 'disabled' : ''}>← Back</button>` +
+    `<div class="tour-dots">${STAGES.map((s, k) => `<i class="${k === X.stage ? 'on' : ''}" data-t="${k}" title="${s.name}"></i>`).join('')}</div>` +
+    `<button class="ghost" data-t="next" ${X.stage === 7 ? 'disabled' : ''}>Next →</button>` +
+    (X.tour ? '<button class="ghost" data-t="exit">Show everything</button>' : '');
+}
+const TOUR_MS = 6500;
+const stopAuto = () => { clearInterval(X.timer); X.timer = null; X.el = 0; $('#tour-prog').classList.remove('on'); };
+function toast(msg){ const t = $('#flow-toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(X.toastT); X.toastT = setTimeout(() => t.classList.remove('on'), 5000); }
+function startTour(){
+  stopAuto(); X.tour = true; X.autoDone = true; X.el = 0;
+  $('#x-tour').textContent = '↺ Replay walkthrough';
+  setStage(0, true);
+  $('#tour-prog').classList.add('on'); $('#tour-prog i').style.width = '0%';
+  // advances on its own, pausing while the mouse is over the flow or the explanation
+  X.timer = setInterval(() => {
+    if (X.hold || document.hidden) return;
+    X.el += 100; $('#tour-prog i').style.width = Math.min(100, X.el / TOUR_MS * 100) + '%';
+    if (X.el < TOUR_MS) return;
+    X.el = 0;
+    if (X.stage < 7) setStage(X.stage + 1, true); else finishTour();
+  }, 100);
+}
+function finishTour(){
+  stopAuto(); X.tour = false;
+  setStage(X.stage, false);
+  document.querySelectorAll('#flow .fcol').forEach((c, k) => { c.classList.remove('pop'); void c.offsetWidth; c.style.animationDelay = (k * 80) + 'ms'; c.classList.add('pop'); });
+  setTimeout(() => { document.querySelectorAll('#flow .fcol').forEach(c => c.style.animationDelay = ''); drawFlow(); }, 1500);
+  toast('✓ That was one full forward pass. Hover over any row to trace a letter yourself.');
+}
+
+$('#tour-nav').addEventListener('click', e => {
+  const b = e.target.closest('[data-t]'); if (!b || b.disabled) return;
+  stopAuto();
+  const t = b.dataset.t;
+  if (t === 'prev') setStage(X.stage - 1, true);
+  else if (t === 'next') setStage(X.stage + 1, true);
+  else if (t === 'exit'){ X.tour = false; setStage(X.stage, false); }
+  else setStage(+t, true);
+});
+$('#x-tour').onclick = startTour;
+function pointAt(e){
+  const body = e.target.closest('.fbody'); if (!body || !X.tr) return;
+  const r = body.getBoundingClientRect(), i = Math.floor((e.clientY - r.top) / PITCH);
+  if (i < 0 || i >= X.tr.T) return;
+  const key = +body.dataset.s === 3 ? Math.floor((e.clientX - r.left) / PITCH) : -1;
+  if (i !== X.row || key !== X.key){ X.row = i; X.key = key >= 0 && key <= i ? key : -1; drawFlow(); }
+}
+$('#flow').addEventListener('pointermove', pointAt);
+$('#flow').addEventListener('click', e => {
+  const hd = e.target.closest('.fhead'); if (hd){ stopAuto(); setStage(+hd.dataset.s, true); return; }
+  const b = e.target.closest('[data-b]'); if (b){ X.block = +b.dataset.b; drawFlow(); return; }
+  const h = e.target.closest('[data-h]'); if (h){ X.head = +h.dataset.h; drawFlow(); return; }
+  const body = e.target.closest('.fbody');
+  if (body){ pointAt(e); if (!X.tour && +body.dataset.s !== X.stage){ setStage(+body.dataset.s, false); } }
+});
+$('#x-text').addEventListener('input', () => { X.row = -1; renderInside(true); });
+
+/* ------------ where learning happens: live gradient sizes per part of the network ------------ */
+let GROUPS = null;
+function buildGroups(){
+  const m = S.model, gs = [{label: 'Embeddings', sub: 'token + position', idx: []}];
+  for (let l = 0; l < CFG.L; l++) gs.push({label: `Block ${l + 1}`, sub: 'attention', idx: []}, {label: `Block ${l + 1}`, sub: 'MLP', idx: []});
+  gs.push({label: 'Output', sub: 'final LN + head', idx: []});
+  m.params.forEach((p, k) => {
+    const n = p.name;
+    const g = n === 'wte' || n === 'wpe' ? 0 : n.startsWith('head') ? gs.length - 1 : 1 + (+n[1]) * 2 + (n.includes('.mlp.') ? 1 : 0);
+    gs[g].idx.push(k);
+  });
+  gs.forEach(g => g.count = g.idx.reduce((s, k) => s + m.params[k].d.length, 0));
+  GROUPS = gs;
+  $('#grad').style.setProperty('--n', gs.length);
+  $('#grad').innerHTML = gs.map((g, i) => `<div class="gtile" style="--d:${((gs.length - 1 - i) * 0.13).toFixed(2)}s"><div class="gmeter"><span></span></div><b>${g.label}</b><small>${g.sub}</small><small class="gv">—</small><small>${short(g.count)} weights</small></div>`).join('');
+}
+function renderGrad(gn){
+  if (!S.model) return;
+  if (!GROUPS) buildGroups();
+  const norms = GROUPS.map(g => gn ? Math.sqrt(g.idx.reduce((s, k) => s + gn[k] * gn[k], 0)) : 0), mx = Math.max(1e-9, ...norms);
+  document.querySelectorAll('#grad .gtile').forEach((el, i) => {
+    el.querySelector('.gmeter span').style.height = (norms[i] / mx * 100).toFixed(0) + '%';
+    el.querySelector('.gv').textContent = gn ? '‖∇‖ ' + norms[i].toFixed(3) : 'press play';
+  });
+}
+
+/* ------------ 04: meaning map (2-D PCA of the character embeddings) ------------ */
+const M = {pos: null, tgt: null, box: null, tbox: null, basis: null, emb: null, hover: -1, raf: 0};
+const CLS = {vowel: ['Vowels', '#6b4eff'], cons: ['Consonants', '#4a4660'], upper: ['Capitals', '#ff6a55'], punct: ['Punctuation', '#0fae7a'], digit: ['Digits', '#e09400'], space: ['Space & newline', '#a9a4b6']};
+function charClass(c){ if (/\s/.test(c)) return 'space'; if (/[0-9]/.test(c)) return 'digit'; if (/[A-Z]/.test(c)) return 'upper'; if (/[aeiou]/.test(c)) return 'vowel'; if (/[a-z]/.test(c)) return 'cons'; return 'punct'; }
+function renderMap(){
+  if (!S.model) return;
+  const V = S.model.V, d = CFG.d, W = S.model.wte.d, mean = new Float64Array(d);
+  for (let i = 0; i < V; i++) for (let j = 0; j < d; j++) mean[j] += W[i * d + j] / V;
+  const Xc = Array.from({length: V}, (_, i) => Float64Array.from({length: d}, (_, j) => W[i * d + j] - mean[j]));
+  const C = Array.from({length: d}, () => new Float64Array(d));
+  for (const r of Xc) for (let a = 0; a < d; a++) for (let b = 0; b < d; b++) C[a][b] += r[a] * r[b];
+  const basis = [];
+  for (let k = 0; k < 2; k++){
+    let v = M.basis ? Float64Array.from(M.basis[k]) : Float64Array.from({length: d}, (_, i) => Math.sin(i * 1.7 + k * 3.1 + 1));
+    for (let it = 0; it < 80; it++){
+      const w = new Float64Array(d);
+      for (let a = 0; a < d; a++){ let s = 0; for (let b = 0; b < d; b++) s += C[a][b] * v[b]; w[a] = s; }
+      for (const u of basis){ let dot = 0; for (let i = 0; i < d; i++) dot += w[i] * u[i]; for (let i = 0; i < d; i++) w[i] -= dot * u[i]; }
+      const n = Math.hypot(...w) || 1; v = w.map(x => x / n);
+    }
+    if (M.basis){ let dot = 0; for (let i = 0; i < d; i++) dot += v[i] * M.basis[k][i]; if (dot < 0) v = v.map(x => -x); }
+    basis.push(v);
+  }
+  M.basis = basis; M.emb = Xc;
+  M.tgt = Xc.map(r => { let a = 0, b = 0; for (let i = 0; i < d; i++){ a += r[i] * basis[0][i]; b += r[i] * basis[1][i]; } return [a, b]; });
+  const xs = M.tgt.map(p => p[0]), ys = M.tgt.map(p => p[1]);
+  M.tbox = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  if (!M.pos || M.pos.length !== V){ M.pos = M.tgt.map(p => p.slice()); M.box = M.tbox.slice(); renderMapLegend(); }
+  if (!M.raf) M.raf = requestAnimationFrame(mapFrame);
+}
+function renderMapLegend(){
+  const present = new Set(S.chars.map(charClass));
+  $('#m-legend').innerHTML = Object.entries(CLS).filter(([k]) => present.has(k)).map(([, [n, col]]) => `<span><i style="border-color:${col};background:${col}22"></i>${n}</span>`).join('');
+  mapCaption();
+}
+function mapFrame(){
+  M.raf = 0; if (!M.pos) return;
+  let moving = false;
+  M.pos.forEach((p, i) => { for (const a of [0, 1]){ const dl = M.tgt[i][a] - p[a]; if (Math.abs(dl) > 1e-4){ p[a] += dl * 0.12; moving = true; } } });
+  for (let a = 0; a < 4; a++){ const dl = M.tbox[a] - M.box[a]; if (Math.abs(dl) > 1e-4){ M.box[a] += dl * 0.12; moving = true; } }
+  drawMap();
+  if (moving) M.raf = requestAnimationFrame(mapFrame);
+}
+function mapXY(i, W, H){
+  const pad = 36, [x0, x1, y0, y1] = M.box;
+  return [pad + (M.pos[i][0] - x0) / Math.max(1e-6, x1 - x0) * (W - 2 * pad), H - pad - (M.pos[i][1] - y0) / Math.max(1e-6, y1 - y0) * (H - 2 * pad)];
+}
+function neighbours(i, n){
+  const a = M.emb[i], na = Math.hypot(...a) || 1;
+  return M.emb.map((b, j) => { let s = 0; for (let k = 0; k < a.length; k++) s += a[k] * b[k]; return [s / na / (Math.hypot(...b) || 1), j]; })
+    .filter(([, j]) => j !== i).sort((p, q) => q[0] - p[0]).slice(0, n);
+}
+function drawMap(){
+  const cv = $('#map'); cv.style.width = ''; cv.style.height = '';
+  const W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+  const c = setupCanvas(cv, W, H);
+  c.strokeStyle = '#ece7de'; c.lineWidth = 1;
+  for (let g = 1; g < 6; g++){ c.beginPath(); c.moveTo(W * g / 6, 0); c.lineTo(W * g / 6, H); c.stroke(); }
+  for (let g = 1; g < 4; g++){ c.beginPath(); c.moveTo(0, H * g / 4); c.lineTo(W, H * g / 4); c.stroke(); }
+  if (M.hover >= 0){
+    const [hx, hy] = mapXY(M.hover, W, H);
+    c.setLineDash([4, 4]); c.strokeStyle = 'rgba(107,78,255,.6)'; c.lineWidth = 1.5;
+    for (const [, j] of neighbours(M.hover, 3)){ const [x, y] = mapXY(j, W, H); c.beginPath(); c.moveTo(hx, hy); c.lineTo(x, y); c.stroke(); }
+    c.setLineDash([]);
+  }
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  S.chars.forEach((ch, i) => {
+    const [x, y] = mapXY(i, W, H), col = CLS[charClass(ch)][1], r = i === M.hover ? 18 : 13.5;
+    c.beginPath(); c.arc(x, y, r, 0, 7); c.fillStyle = i === M.hover ? col : col + '22'; c.fill();
+    c.strokeStyle = col; c.lineWidth = 1.5; c.stroke();
+    c.fillStyle = i === M.hover ? '#fff' : col; c.font = `600 ${i === M.hover ? 15 : 13}px ${css('--mono')}`;
+    c.fillText(vis(ch), x, y + 1);
+  });
+}
+function mapCaption(){
+  if (M.hover < 0){ $('#map-cap').innerHTML = `Hover over a letter to see the three characters the model treats as most similar to it.${S.step < 150 ? ' <br><br>Untrained, the map is random. Train for a few hundred steps and come back.' : ''}`; return; }
+  const nb = neighbours(M.hover, 3);
+  $('#map-cap').innerHTML = `<b>“${esc(vis(S.chars[M.hover]))}”</b> sits closest to ${nb.map(([s, j]) => `<b>“${esc(vis(S.chars[j]))}”</b> (${s.toFixed(2)})`).join(', ')}.<br><br>The numbers are cosine similarity across all ${CFG.d} dimensions: 1 means the same direction, 0 means unrelated.`;
+}
+$('#map').addEventListener('pointermove', e => {
+  if (!M.pos) return;
+  const r = e.target.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  let best = -1, bd = 22 * 22;
+  S.chars.forEach((_, i) => { const [x, y] = mapXY(i, r.width, r.height), dd = (x - mx) ** 2 + (y - my) ** 2; if (dd < bd){ bd = dd; best = i; } });
+  if (best !== M.hover){ M.hover = best; drawMap(); mapCaption(); }
+});
+$('#map').addEventListener('pointerleave', () => { M.hover = -1; drawMap(); mapCaption(); });
+addEventListener('resize', () => { drawMap(); if (X.tr) drawFlow(); });
+
+/* ------------ motion: auto-start each flow as it scrolls into view ------------ */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function onView(el, ratio, fn, once = true){
+  if (!el) return;
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    const inView = e.isIntersecting && e.intersectionRatio >= ratio;
+    if (once){ if (inView){ fn(true); io.disconnect(); } }
+    else fn(inView);
+  }), {threshold: [0, ratio]});
+  io.observe(el);
+}
+const isMouse = e => e.pointerType === 'mouse';
+
+// sections glide in, a progress bar tracks the journey, and each section points to the next
+document.querySelectorAll('.section .sec-head, .section .card').forEach(el => {
+  el.classList.add('reveal');
+  onView(el, 0.08, () => el.classList.add('in'));
+});
+[['studio', 'inside', 'Next: look inside the model'], ['inside', 'guess', 'Next: one guess, up close'],
+ ['guess', 'meaning', 'Next: what letters mean to it'], ['meaning', 'write', 'Next: write with it']].forEach(([from, to, label]) => {
+  const w = [...document.querySelectorAll(`#${from} > .wrap`)].pop();
+  if (w) w.insertAdjacentHTML('beforeend', `<div class="next-nudge"><a href="#${to}">${label} <i>↓</i></a></div>`);
+});
+addEventListener('scroll', () => {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  $('#sprog').style.transform = `scaleX(${max > 0 ? Math.min(1, scrollY / max) : 0})`;
+}, {passive: true});
+
+// hero: characters from the sample text drift upwards
+(function floaty(){
+  if (REDUCED) return;
+  const pool = [...new Set([...'Shall I compare thee to a summer’s day'].filter(c => c.trim()))];
+  $('#floaty').innerHTML = Array.from({length: 14}, (_, i) => {
+    const dur = 11 + (i * 37 % 9), left = (i * 53 + 7) % 96;
+    return `<span style="left:${left}%;animation-duration:${dur}s;animation-delay:-${(i * 2.3) % dur}s;--r:${(i % 2 ? 1 : -1) * (4 + i % 7)}deg">${pool[i * 5 % pool.length]}</span>`;
+  }).join('');
+})();
+
+// 01: training starts by itself the first time the loop comes into view
+onView($('.studio'), 0.35, () => { if (!S.everStarted && S.model) setRunning(true); });
+
+// 02: the walkthrough plays by itself the first time the model comes into view
+onView($('#inside .inside-card'), 0.3, () => { if (!S.everStarted && S.model) setRunning(true); if (!X.autoDone) startTour(); });
+['#flow', '#x-explain'].forEach(s => {
+  $(s).addEventListener('pointerenter', e => { if (isMouse(e)) X.hold = true; });
+  $(s).addEventListener('pointerleave', e => { if (isMouse(e)) X.hold = false; });
+});
+
+// 03: a new quiz every few seconds while the section is on screen
+const G = {vis: false, hover: false, last: 0};
+onView($('#guess .card'), 0.3, v => { G.vis = v; renderAutoPill(); }, false);
+$('#guess .card').addEventListener('pointerenter', e => { if (isMouse(e)){ G.hover = true; renderAutoPill(); } });
+$('#guess .card').addEventListener('pointerleave', e => { if (isMouse(e)){ G.hover = false; renderAutoPill(); } });
+function freshGuess(){ const el = $('#g-ctx'); el.classList.remove('fresh'); void el.offsetWidth; el.classList.add('fresh'); clearTimeout(G.t); G.t = setTimeout(() => el.classList.remove('fresh'), 1100); }
+function renderAutoPill(){ const p = $('#g-auto'); if (!p) return; const on = G.vis && !G.hover && performance.now() - G.last > 12000; p.classList.toggle('off', !on); p.lastChild.textContent = on ? 'auto-playing' : 'paused'; }
+$('#g-next').addEventListener('click', () => { G.last = performance.now(); freshGuess(); renderAutoPill(); });
+setInterval(() => {
+  if (!S.model || !G.vis || G.hover || performance.now() - G.last < 12000) return;
+  newGuessSpot(); freshGuess(); renderGuess(); renderAutoPill();
+}, 5000);
+
+// 04: the map tours through the letters until the visitor takes over
+M.vis = false; M.user = false; M.cyc = 0;
+onView($('#map'), 0.3, v => { M.vis = v; }, false);
+$('#map').addEventListener('pointerenter', e => { if (isMouse(e)) M.user = true; });
+$('#map').addEventListener('pointerleave', () => { M.user = false; });
+setInterval(() => {
+  if (!M.vis || M.user || !M.pos) return;
+  const ids = S.chars.map((c, i) => i), vow = ids.filter(i => /[aeiou]/i.test(S.chars[i])), rest = ids.filter(i => /[a-z]/i.test(S.chars[i]) && !/[aeiou]/i.test(S.chars[i]));
+  const order = [...vow, ...rest]; if (!order.length) return;
+  M.hover = order[M.cyc++ % order.length]; drawMap(); mapCaption();
+}, 2600);
+
+// 05: it writes something by itself the first time you get there
+onView($('#write .card'), 0.5, () => { if (!$('#w-out .gc')) $('#w-go').click(); });
+
+/* ------------ boot ------------ */
+addEventListener('scroll', () => $('#nav').classList.toggle('scrolled', scrollY > 10), {passive: true});
+$('#text').value = PRESETS[0].text;
+updateStartBtn();
+prepare(PRESETS[0].text, false);
+setRunning(false);
+</script>
+</body>
+</html>
